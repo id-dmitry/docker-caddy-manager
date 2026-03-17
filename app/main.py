@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import secrets
+import shutil
 from contextlib import asynccontextmanager
 
 import docker
@@ -296,6 +297,31 @@ app.mount("/mcp", create_mcp_app())
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.get("/api/system")
+async def api_system(_=Depends(verify_api_key)):
+    """System metrics: CPU, RAM, Storage via Docker host info."""
+    client = get_docker()
+    info = client.info()
+    # Memory
+    mem_total = info.get("MemTotal", 0)  # bytes
+    # CPU
+    cpus = info.get("NCPU", 0)
+    # Storage — check the root filesystem of the container
+    disk = shutil.disk_usage("/")
+    return {
+        "cpu_count": cpus,
+        "mem_total_bytes": mem_total,
+        "mem_total_gb": round(mem_total / (1024**3), 1),
+        "disk_total_bytes": disk.total,
+        "disk_used_bytes": disk.used,
+        "disk_free_bytes": disk.free,
+        "disk_total_gb": round(disk.total / (1024**3), 1),
+        "disk_used_gb": round(disk.used / (1024**3), 1),
+        "disk_free_gb": round(disk.free / (1024**3), 1),
+        "disk_used_pct": round(disk.used / disk.total * 100, 1),
+    }
 
 
 # ---------------------------------------------------------------------------

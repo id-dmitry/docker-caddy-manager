@@ -1171,41 +1171,132 @@
       border-radius: 4px;
     }
 
-    /* ─── Stats Row ────────────────────────────────────────────────── */
+    /* ─── Stats Panels ─────────────────────────────────────────────── */
+    .stats-panels {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .stats-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px 20px 20px;
+    }
+
+    .stats-panel-title {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
     .stats-row {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
     }
 
     .stat-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
       border-radius: var(--radius);
-      padding: 16px;
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 8px;
+      transition: border-color var(--transition), background var(--transition);
+    }
+
+    .stat-card:hover {
+      border-color: var(--border);
+      background: var(--bg-hover);
+    }
+
+    .stat-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .stat-icon-blue  { background: var(--blue-subtle);  color: var(--blue);  border: 1px solid rgba(59,130,246,0.2); }
+    .stat-icon-green { background: var(--green-subtle); color: var(--green); border: 1px solid rgba(16,185,129,0.2); }
+    .stat-icon-amber { background: var(--amber-subtle); color: var(--amber); border: 1px solid rgba(245,158,11,0.2); }
+
+    .stat-body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
     }
 
     .stat-label {
-      font-size: 0.7rem;
+      font-size: 0.65rem;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.08em;
       color: var(--text-muted);
-      margin-bottom: 8px;
     }
 
     .stat-value {
       font-family: var(--font-mono);
-      font-size: 1.5rem;
+      font-size: 1.35rem;
       font-weight: 700;
       color: var(--text);
       line-height: 1;
     }
 
     .stat-sub {
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       color: var(--text-muted);
+    }
+
+    /* Storage progress bar inside stat-card */
+    .stat-progress-wrap {
+      width: 100%;
       margin-top: 4px;
+    }
+
+    .stat-progress-bar {
+      width: 100%;
+      height: 4px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .stat-progress-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: var(--amber);
+      transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    .stat-progress-fill.pct-high {
+      background: var(--red);
+    }
+
+    .stat-progress-fill.pct-ok {
+      background: var(--green);
+    }
+
+    .stat-progress-label {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      color: var(--text-muted);
+      text-align: right;
+      margin-top: 3px;
     }
 
     /* ─── Kbd ──────────────────────────────────────────────────────── */
@@ -1281,7 +1372,8 @@
       .brand-domain { display: none; }
       .tabs-nav { padding: 0 16px; }
       main { padding: 20px 16px 48px; gap: 20px; }
-      .stats-row { grid-template-columns: 1fr 1fr; }
+      .stats-panels { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: repeat(3, 1fr); }
       .modal-body { padding: 20px 16px; }
       .modal-header { padding: 16px 20px; }
       .modal-footer { padding: 14px 16px; }
@@ -1295,7 +1387,7 @@
     @media (max-width: 480px) {
       .toolbar { flex-direction: column; align-items: stretch; }
       .toolbar-right { margin-left: 0; }
-      .stats-row { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
       .modal-footer-split { flex-direction: column; }
       .modal-footer-split .footer-left,
       .modal-footer-split .footer-right { justify-content: flex-end; }
@@ -1425,23 +1517,134 @@
   <!-- Main -->
   <main role="main">
 
-    <!-- Stats Row (always visible) -->
-    <div class="stats-row" id="stats-row">
-      <div class="stat-card">
-        <div class="stat-label">Domains</div>
-        <div class="stat-value" id="stat-domains">—</div>
-        <div class="stat-sub">configured routes</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Containers</div>
-        <div class="stat-value" id="stat-containers">—</div>
-        <div class="stat-sub">running</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Networks</div>
-        <div class="stat-value" id="stat-networks">—</div>
-        <div class="stat-sub">docker networks</div>
-      </div>
+    <!-- Stats (always visible) -->
+    <div class="stats-panels" aria-label="Dashboard statistics">
+
+      <!-- Left: Infrastructure -->
+      <section class="stats-panel" aria-labelledby="panel-infra-title">
+        <div class="stats-panel-title" id="panel-infra-title">Infrastructure</div>
+        <div class="stats-row">
+
+          <div class="stat-card">
+            <div class="stat-icon stat-icon-blue" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="2" y1="12" x2="22" y2="12"/>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+              </svg>
+            </div>
+            <div class="stat-body">
+              <div class="stat-label">Domains</div>
+              <div class="stat-value" id="stat-domains">—</div>
+              <div class="stat-sub">routes</div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon stat-icon-blue" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                <path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z"/>
+                <line x1="12" y1="12" x2="12" y2="16"/>
+                <line x1="10" y1="14" x2="14" y2="14"/>
+              </svg>
+            </div>
+            <div class="stat-body">
+              <div class="stat-label">Containers</div>
+              <div class="stat-value" id="stat-containers">—</div>
+              <div class="stat-sub">running</div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon stat-icon-blue" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="9" width="4" height="6" rx="1"/>
+                <rect x="18" y="9" width="4" height="6" rx="1"/>
+                <rect x="9" y="2" width="6" height="4" rx="1"/>
+                <rect x="9" y="18" width="6" height="4" rx="1"/>
+                <line x1="6" y1="12" x2="9" y2="12"/>
+                <line x1="15" y1="12" x2="18" y2="12"/>
+                <line x1="12" y1="6" x2="12" y2="9"/>
+                <line x1="12" y1="15" x2="12" y2="18"/>
+              </svg>
+            </div>
+            <div class="stat-body">
+              <div class="stat-label">Networks</div>
+              <div class="stat-value" id="stat-networks">—</div>
+              <div class="stat-sub">docker nets</div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Right: System Resources -->
+      <section class="stats-panel" aria-labelledby="panel-sys-title">
+        <div class="stats-panel-title" id="panel-sys-title">System Resources</div>
+        <div class="stats-row">
+
+          <div class="stat-card">
+            <div class="stat-icon stat-icon-green" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="4" width="16" height="16" rx="2"/>
+                <rect x="9" y="9" width="6" height="6"/>
+                <line x1="9" y1="1" x2="9" y2="4"/>
+                <line x1="15" y1="1" x2="15" y2="4"/>
+                <line x1="9" y1="20" x2="9" y2="23"/>
+                <line x1="15" y1="20" x2="15" y2="23"/>
+                <line x1="20" y1="9" x2="23" y2="9"/>
+                <line x1="20" y1="14" x2="23" y2="14"/>
+                <line x1="1" y1="9" x2="4" y2="9"/>
+                <line x1="1" y1="14" x2="4" y2="14"/>
+              </svg>
+            </div>
+            <div class="stat-body">
+              <div class="stat-label">CPU</div>
+              <div class="stat-value" id="stat-cpu">—</div>
+              <div class="stat-sub">cores</div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon stat-icon-green" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="6" width="20" height="12" rx="2"/>
+                <path d="M22 10h1M22 14h1M1 10H2M1 14H2"/>
+                <rect x="6" y="9" width="12" height="6" rx="1"/>
+              </svg>
+            </div>
+            <div class="stat-body">
+              <div class="stat-label">RAM</div>
+              <div class="stat-value" id="stat-ram">—</div>
+              <div class="stat-sub">GB total</div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon stat-icon-amber" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                <path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/>
+                <path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/>
+              </svg>
+            </div>
+            <div class="stat-body">
+              <div class="stat-label">Storage</div>
+              <div class="stat-value" id="stat-disk">—</div>
+              <div class="stat-sub" id="stat-disk-sub">GB used</div>
+            </div>
+            <div class="stat-progress-wrap">
+              <div class="stat-progress-bar" role="progressbar" aria-label="Disk usage" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                <div class="stat-progress-fill" id="stat-disk-fill" style="width:0%"></div>
+              </div>
+              <div class="stat-progress-label" id="stat-disk-pct">—%</div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
     </div>
 
     <!-- ── Tab: Domains ─────────────────────────────────────────────── -->
@@ -1865,10 +2068,18 @@ const tabContainersPanel = $('#tab-containers');
 const tabDomainsCount    = $('#tab-domains-count');
 const tabContainersCount = $('#tab-containers-count');
 
-// Stats
+// Stats — Infrastructure
 const statDomains        = $('#stat-domains');
 const statContainers     = $('#stat-containers');
 const statNetworks       = $('#stat-networks');
+
+// Stats — System Resources
+const statCpu            = $('#stat-cpu');
+const statRam            = $('#stat-ram');
+const statDisk           = $('#stat-disk');
+const statDiskSub        = $('#stat-disk-sub');
+const statDiskFill       = $('#stat-disk-fill');
+const statDiskPct        = $('#stat-disk-pct');
 
 // Domains table
 const domainsTbody       = $('#domains-tbody');
@@ -2059,6 +2270,7 @@ async function loadAll() {
     renderDomains();
     renderContainers();
     updateStats();
+    loadSystem();
   } catch (err) {
     if (err.message !== 'Unauthorized') {
       toast('error', 'Failed to load data', err.message);
@@ -2253,6 +2465,28 @@ function updateStats() {
   statDomains.textContent    = domains.length;
   statContainers.textContent = containers.length;
   statNetworks.textContent   = networks.length;
+}
+
+async function loadSystem() {
+  try {
+    const sys = await api('GET', '/api/system');
+    statCpu.textContent = sys.cpu_count ?? '—';
+    statRam.textContent = sys.mem_total_gb != null ? Math.round(sys.mem_total_gb) : '—';
+
+    if (sys.disk_used_gb != null && sys.disk_total_gb != null) {
+      statDisk.textContent    = Math.round(sys.disk_used_gb);
+      statDiskSub.textContent = `/ ${Math.round(sys.disk_total_gb)} GB`;
+      const pct = sys.disk_used_pct != null ? sys.disk_used_pct : 0;
+      statDiskFill.style.width = `${Math.min(pct, 100)}%`;
+      statDiskFill.className   = 'stat-progress-fill' +
+        (pct >= 85 ? ' pct-high' : pct < 60 ? ' pct-ok' : '');
+      statDiskPct.textContent  = `${pct.toFixed(1)}%`;
+      const bar = statDiskFill.closest('[role="progressbar"]');
+      if (bar) bar.setAttribute('aria-valuenow', Math.round(pct));
+    }
+  } catch (err) {
+    // System stats are non-critical — fail silently
+  }
 }
 
 // ─── Search ────────────────────────────────────────────────────────────
