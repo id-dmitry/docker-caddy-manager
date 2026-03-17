@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caddy Manager</title>
+    <style>
+        :root {
+            --bg: #0f1117;
+            --surface: #1a1d27;
+            --surface2: #242736;
+            --border: #2e3244;
+            --text: #e4e6f0;
+            --text-dim: #8b8fa3;
+            --accent: #4f8cff;
+            --accent-hover: #6ba0ff;
+            --danger: #ff4f6d;
+            --danger-hover: #ff6b85;
+            --success: #34d399;
+            --warning: #fbbf24;
+            --radius: 8px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+        .header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header h1 { font-size: 20px; font-weight: 600; }
+        .header .subtitle { color: var(--text-dim); font-size: 13px; margin-left: 12px; }
+        .header-actions { display: flex; gap: 8px; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+        /* Auth */
+        .auth-overlay {
+            position: fixed; inset: 0; background: var(--bg);
+            display: flex; align-items: center; justify-content: center; z-index: 100;
+        }
+        .auth-box {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 32px; width: 360px; text-align: center;
+        }
+        .auth-box h2 { margin-bottom: 16px; }
+        .auth-box input {
+            width: 100%; padding: 10px 12px; margin-bottom: 12px;
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: var(--radius); color: var(--text); font-size: 14px;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 8px 16px; border: none; border-radius: var(--radius);
+            font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s;
+        }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-danger { background: var(--danger); color: #fff; }
+        .btn-danger:hover { background: var(--danger-hover); }
+        .btn-ghost { background: transparent; color: var(--text-dim); border: 1px solid var(--border); }
+        .btn-ghost:hover { background: var(--surface2); color: var(--text); }
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+        /* Table */
+        .card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius); overflow: hidden; margin-bottom: 24px;
+        }
+        .card-header {
+            padding: 16px 20px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .card-header h2 { font-size: 16px; font-weight: 600; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px 20px; text-align: left; }
+        th { color: var(--text-dim); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border); }
+        td { border-bottom: 1px solid var(--border); font-size: 14px; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: var(--surface2); }
+        .badge {
+            display: inline-block; padding: 2px 8px; border-radius: 12px;
+            font-size: 11px; font-weight: 600;
+        }
+        .badge-managed { background: rgba(79,140,255,.15); color: var(--accent); }
+        .badge-external { background: rgba(251,191,36,.15); color: var(--warning); }
+        .badge-net { background: rgba(52,211,153,.15); color: var(--success); font-size: 11px; margin: 1px 2px; }
+        a.domain-link { color: var(--accent); text-decoration: none; }
+        a.domain-link:hover { text-decoration: underline; }
+
+        /* Modal */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,.6); z-index: 50;
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 24px; width: 480px; max-width: 95vw;
+        }
+        .modal h3 { margin-bottom: 16px; font-size: 18px; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 13px; color: var(--text-dim); margin-bottom: 4px; }
+        .form-group input, .form-group select {
+            width: 100%; padding: 10px 12px;
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: var(--radius); color: var(--text); font-size: 14px;
+        }
+        .form-group select option { background: var(--surface2); }
+        .domain-preview {
+            font-size: 13px; color: var(--text-dim); margin-top: 4px;
+        }
+        .domain-preview span { color: var(--accent); font-weight: 500; }
+        .form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+        /* Toast */
+        .toast-container { position: fixed; top: 16px; right: 16px; z-index: 200; }
+        .toast {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 12px 16px; margin-bottom: 8px;
+            font-size: 13px; min-width: 280px; box-shadow: 0 8px 24px rgba(0,0,0,.3);
+            animation: slideIn .2s ease-out;
+        }
+        .toast.success { border-left: 3px solid var(--success); }
+        .toast.error { border-left: 3px solid var(--danger); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* Loading */
+        .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .empty-state { padding: 40px; text-align: center; color: var(--text-dim); }
+    </style>
+</head>
+<body>
+
+<!-- Auth overlay -->
+<div class="auth-overlay" id="authOverlay">
+    <div class="auth-box">
+        <h2>Caddy Manager</h2>
+        <p style="color: var(--text-dim); margin-bottom: 20px; font-size: 14px;">Enter API key to continue</p>
+        <input type="password" id="apiKeyInput" placeholder="API Key" autofocus>
+        <button class="btn btn-primary" style="width: 100%;" onclick="doLogin()">Login</button>
+    </div>
+</div>
+
+<!-- Header -->
+<div class="header">
+    <div style="display:flex; align-items:center;">
+        <h1>Caddy Manager</h1>
+        <span class="subtitle">{{ base_domain }}</span>
+    </div>
+    <div class="header-actions">
+        <button class="btn btn-ghost btn-sm" onclick="reloadCaddy()">Reload Caddy</button>
+        <button class="btn btn-ghost btn-sm" onclick="refreshAll()">Refresh</button>
+        <button class="btn btn-ghost btn-sm" onclick="logout()">Logout</button>
+    </div>
+</div>
+
+<!-- Content -->
+<div class="container">
+    <!-- Domains -->
+    <div class="card">
+        <div class="card-header">
+            <h2>Domains</h2>
+            <button class="btn btn-primary btn-sm" onclick="openModal()">+ Add Domain</button>
+        </div>
+        <div id="domainsTable">
+            <div class="empty-state"><div class="spinner"></div> Loading...</div>
+        </div>
+    </div>
+
+    <!-- Containers -->
+    <div class="card">
+        <div class="card-header">
+            <h2>Containers</h2>
+        </div>
+        <div id="containersTable">
+            <div class="empty-state"><div class="spinner"></div> Loading...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Domain Modal -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+        <h3>Add Domain</h3>
+        <div class="form-group">
+            <label>Subdomain</label>
+            <input type="text" id="fSubdomain" placeholder="myapp" oninput="updatePreview()">
+            <div class="domain-preview">
+                <span id="domainPreview">myapp</span>.{{ base_domain }}
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Container</label>
+            <select id="fContainer">
+                <option value="">Select container...</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Port</label>
+            <input type="number" id="fPort" placeholder="80" value="80">
+        </div>
+        <div class="form-group">
+            <label>Network (connect container to this network)</label>
+            <select id="fNetwork">
+                <option value="">No change (keep current)</option>
+            </select>
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+            <button class="btn btn-primary" id="btnCreate" onclick="createDomain()">Create</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toasts"></div>
+
+<script>
+const BASE = '';
+let API_KEY = localStorage.getItem('caddy_api_key') || '';
+
+// --- Auth ---
+function checkAuth() {
+    if (!API_KEY) {
+        document.getElementById('authOverlay').style.display = 'flex';
+    } else {
+        document.getElementById('authOverlay').style.display = 'none';
+        refreshAll();
+    }
+}
+
+function doLogin() {
+    API_KEY = document.getElementById('apiKeyInput').value.trim();
+    if (!API_KEY) return;
+    localStorage.setItem('caddy_api_key', API_KEY);
+    document.getElementById('authOverlay').style.display = 'none';
+    refreshAll();
+}
+
+function logout() {
+    API_KEY = '';
+    localStorage.removeItem('caddy_api_key');
+    document.getElementById('authOverlay').style.display = 'flex';
+}
+
+document.getElementById('apiKeyInput').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+// --- API helpers ---
+async function api(method, path, body = null) {
+    const opts = {
+        method,
+        headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' },
+    };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(BASE + path, opts);
+    if (res.status === 401 || res.status === 403) {
+        toast('Invalid API key', 'error');
+        logout();
+        throw new Error('Unauthorized');
+    }
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }));
+        throw new Error(err.detail || JSON.stringify(err));
+    }
+    return res.json();
+}
+
+// --- Toast ---
+function toast(msg, type = 'success') {
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    el.textContent = msg;
+    document.getElementById('toasts').appendChild(el);
+    setTimeout(() => el.remove(), 4000);
+}
+
+// --- Data loading ---
+let containers = [];
+let networks = [];
+
+async function refreshAll() {
+    await Promise.all([loadDomains(), loadContainers(), loadNetworks()]);
+}
+
+async function loadDomains() {
+    try {
+        const domains = await api('GET', '/api/domains');
+        const el = document.getElementById('domainsTable');
+        if (!domains.length) {
+            el.innerHTML = '<div class="empty-state">No domains configured yet</div>';
+            return;
+        }
+        el.innerHTML = `<table>
+            <thead><tr><th>Domain</th><th>Upstream</th><th>Config File</th><th>Type</th><th>Actions</th></tr></thead>
+            <tbody>${domains.map(d => `<tr>
+                <td><a class="domain-link" href="https://${d.domain}" target="_blank">${d.domain}</a></td>
+                <td>${d.upstream}</td>
+                <td style="color:var(--text-dim)">${d.file}</td>
+                <td>${d.managed ? '<span class="badge badge-managed">managed</span>' : '<span class="badge badge-external">manual</span>'}</td>
+                <td><button class="btn btn-danger btn-sm" onclick="deleteDomain('${d.subdomain}')">Delete</button></td>
+            </tr>`).join('')}</tbody>
+        </table>`;
+    } catch (e) {
+        if (e.message !== 'Unauthorized') toast(e.message, 'error');
+    }
+}
+
+async function loadContainers() {
+    try {
+        containers = await api('GET', '/api/containers');
+        const el = document.getElementById('containersTable');
+        el.innerHTML = `<table>
+            <thead><tr><th>Name</th><th>Image</th><th>Status</th><th>Networks</th></tr></thead>
+            <tbody>${containers.map(c => `<tr>
+                <td>${c.name}</td>
+                <td style="color:var(--text-dim);font-size:12px">${c.image}</td>
+                <td>${c.status === 'running' ? '<span style="color:var(--success)">running</span>' : c.status}</td>
+                <td>${c.networks.map(n => `<span class="badge badge-net">${n}</span>`).join(' ')}</td>
+            </tr>`).join('')}</tbody>
+        </table>`;
+        // Update container dropdown
+        const sel = document.getElementById('fContainer');
+        const current = sel.value;
+        sel.innerHTML = '<option value="">Select container...</option>' +
+            containers.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+        if (current) sel.value = current;
+    } catch (e) {
+        if (e.message !== 'Unauthorized') toast(e.message, 'error');
+    }
+}
+
+async function loadNetworks() {
+    try {
+        networks = await api('GET', '/api/networks');
+        const sel = document.getElementById('fNetwork');
+        const current = sel.value;
+        sel.innerHTML = '<option value="">No change (keep current)</option>' +
+            networks.map(n => `<option value="${n.name}">${n.name}</option>`).join('');
+        if (current) sel.value = current;
+    } catch (e) {
+        if (e.message !== 'Unauthorized') toast(e.message, 'error');
+    }
+}
+
+// --- Actions ---
+async function createDomain() {
+    const subdomain = document.getElementById('fSubdomain').value.trim();
+    const container = document.getElementById('fContainer').value;
+    const port = parseInt(document.getElementById('fPort').value) || 80;
+    const network = document.getElementById('fNetwork').value;
+
+    if (!subdomain) return toast('Subdomain is required', 'error');
+    if (!container) return toast('Container is required', 'error');
+
+    const btn = document.getElementById('btnCreate');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Creating...';
+
+    try {
+        const result = await api('POST', '/api/domains', { subdomain, container, port, network });
+        toast(`Created ${result.domain}`);
+        closeModal();
+        await refreshAll();
+    } catch (e) {
+        toast(e.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Create';
+    }
+}
+
+async function deleteDomain(subdomain) {
+    if (!confirm(`Delete ${subdomain}.{{ base_domain }}?`)) return;
+    try {
+        await api('DELETE', `/api/domains/${subdomain}`);
+        toast(`Deleted ${subdomain}`);
+        await loadDomains();
+    } catch (e) {
+        toast(e.message, 'error');
+    }
+}
+
+async function reloadCaddy() {
+    try {
+        const result = await api('POST', '/api/caddy/reload');
+        toast('Caddy reloaded: ' + result.reload);
+    } catch (e) {
+        toast(e.message, 'error');
+    }
+}
+
+// --- Modal ---
+function openModal() {
+    document.getElementById('fSubdomain').value = '';
+    document.getElementById('fContainer').value = '';
+    document.getElementById('fPort').value = '80';
+    document.getElementById('fNetwork').value = '';
+    updatePreview();
+    document.getElementById('modalOverlay').classList.add('active');
+}
+
+function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('active');
+}
+
+function updatePreview() {
+    const v = document.getElementById('fSubdomain').value.trim() || 'myapp';
+    document.getElementById('domainPreview').textContent = v;
+}
+
+document.getElementById('modalOverlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeModal();
+});
+
+// --- Init ---
+checkAuth();
+</script>
+</body>
+</html>

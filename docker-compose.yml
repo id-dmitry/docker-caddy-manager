@@ -1,0 +1,19 @@
+services:
+  caddy-manager:
+    build: .
+    container_name: caddy-manager
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /root/n8n-install/caddy-addon:/data/addons:rw
+    environment:
+      ADDON_DIR: /data/addons
+      CADDY_CONTAINER: caddy
+      BASE_DOMAIN: some-tools.org
+      API_KEY: ${API_KEY:-caddy-mgr-secret-2026}
+    networks:
+      - localai_default
+
+networks:
+  localai_default:
+    external: true
