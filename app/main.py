@@ -160,12 +160,32 @@ def _list_containers() -> list[dict]:
     result = []
     for c in client.containers.list():
         nets = list(c.attrs["NetworkSettings"]["Networks"].keys())
+        # Extract exposed ports from container config
+        exposed = []
+        ports_cfg = c.attrs.get("Config", {}).get("ExposedPorts", {})
+        if ports_cfg:
+            for p in ports_cfg:
+                num = p.split("/")[0]
+                if num.isdigit():
+                    exposed.append(int(num))
+        # Also check port bindings
+        port_bindings = c.attrs.get("NetworkSettings", {}).get("Ports", {})
+        if port_bindings:
+            for p in port_bindings:
+                num = p.split("/")[0]
+                if num.isdigit() and int(num) not in exposed:
+                    exposed.append(int(num))
+        # Find associated domain
+        domains = _parse_addon_domains()
+        domain = next((d for d in domains if d["container"] == c.name), None)
         result.append({
             "name": c.name,
             "id": c.short_id,
             "image": c.image.tags[0] if c.image.tags else c.attrs["Config"]["Image"],
             "status": c.status,
             "networks": nets,
+            "ports": sorted(exposed),
+            "domain": domain,
         })
     return sorted(result, key=lambda x: x["name"])
 
