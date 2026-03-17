@@ -299,24 +299,71 @@ async def health():
     return {"status": "ok"}
 
 
+HOST_PROC = os.environ.get("HOST_PROC", "/host/proc")
+_prev_cpu = {"idle": 0, "total": 0}
+
+
+def _read_cpu_usage() -> float:
+    """Read CPU usage % from host /proc/stat."""
+    try:
+        with open(os.path.join(HOST_PROC, "stat")) as f:
+            line = f.readline()  # cpu  user nice system idle iowait irq softirq ...
+        parts = line.split()
+        if parts[0] != "cpu":
+            return 0.0
+        times = [int(x) for x in parts[1:]]
+        idle = times[3] + (times[4] if len(times) > 4 else 0)  # idle + iowait
+        total = sum(times)
+        d_idle = idle - _prev_cpu["idle"]
+        d_total = total - _prev_cpu["total"]
+        _prev_cpu["idle"] = idle
+        _prev_cpu["total"] = total
+        if d_total == 0:
+            return 0.0
+        return round((1.0 - d_idle / d_total) * 100, 1)
+    except Exception:
+        return 0.0
+
+
+def _read_mem_usage() -> dict:
+    """Read RAM usage from host /proc/meminfo."""
+    try:
+        info = {}
+        with open(os.path.join(HOST_PROC, "meminfo")) as f:
+            for line in f:
+                parts = line.split()
+                key = parts[0].rstrip(":")
+                val = int(parts[1]) * 1024  # kB -> bytes
+                info[key] = val
+                if len(info) >= 4:
+                    break
+        total = info.get("MemTotal", 0)
+        available = info.get("MemAvailable", 0)
+        used = total - available
+        return {
+            "total": total,
+            "used": used,
+            "pct": round(used / total * 100, 1) if total else 0.0,
+        }
+    except Exception:
+        return {"total": 0, "used": 0, "pct": 0.0}
+
+
 @app.get("/api/system")
 async def api_system(_=Depends(verify_api_key)):
-    """System metrics: CPU, RAM, Storage via Docker host info."""
+    """Live system metrics: CPU%, RAM%, Storage%."""
     client = get_docker()
     info = client.info()
-    # Memory
-    mem_total = info.get("MemTotal", 0)  # bytes
-    # CPU
     cpus = info.get("NCPU", 0)
-    # Storage — check the root filesystem of the container
+    cpu_pct = _read_cpu_usage()
+    mem = _read_mem_usage()
     disk = shutil.disk_usage("/")
     return {
         "cpu_count": cpus,
-        "mem_total_bytes": mem_total,
-        "mem_total_gb": round(mem_total / (1024**3), 1),
-        "disk_total_bytes": disk.total,
-        "disk_used_bytes": disk.used,
-        "disk_free_bytes": disk.free,
+        "cpu_used_pct": cpu_pct,
+        "mem_total_gb": round(mem["total"] / (1024**3), 1),
+        "mem_used_gb": round(mem["used"] / (1024**3), 1),
+        "mem_used_pct": mem["pct"],
         "disk_total_gb": round(disk.total / (1024**3), 1),
         "disk_used_gb": round(disk.used / (1024**3), 1),
         "disk_free_gb": round(disk.free / (1024**3), 1),

@@ -400,7 +400,7 @@
       color: var(--text);
       font-family: var(--font-sans);
       font-size: 0.875rem;
-      padding: 8px 12px 8px 38px;
+      padding: 8px 12px 8px 42px;
       transition: border-color var(--transition), box-shadow var(--transition);
       appearance: none;
       -webkit-appearance: none;
@@ -1601,8 +1601,14 @@
             </div>
             <div class="stat-body">
               <div class="stat-label">CPU</div>
-              <div class="stat-value" id="stat-cpu">—</div>
-              <div class="stat-sub">cores</div>
+              <div class="stat-value" id="stat-cpu">—%</div>
+              <div class="stat-sub" id="stat-cpu-sub">— cores</div>
+            </div>
+            <div class="stat-progress-wrap">
+              <div class="stat-progress-bar" role="progressbar" aria-label="CPU usage" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                <div class="stat-progress-fill" id="stat-cpu-fill" style="width:0%"></div>
+              </div>
+              <div class="stat-progress-label" id="stat-cpu-pct">—%</div>
             </div>
           </div>
 
@@ -1616,8 +1622,14 @@
             </div>
             <div class="stat-body">
               <div class="stat-label">RAM</div>
-              <div class="stat-value" id="stat-ram">—</div>
-              <div class="stat-sub">GB total</div>
+              <div class="stat-value" id="stat-ram">—%</div>
+              <div class="stat-sub" id="stat-ram-sub">— GB</div>
+            </div>
+            <div class="stat-progress-wrap">
+              <div class="stat-progress-bar" role="progressbar" aria-label="Memory usage" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                <div class="stat-progress-fill" id="stat-ram-fill" style="width:0%"></div>
+              </div>
+              <div class="stat-progress-label" id="stat-ram-pct">—%</div>
             </div>
           </div>
 
@@ -1631,8 +1643,8 @@
             </div>
             <div class="stat-body">
               <div class="stat-label">Storage</div>
-              <div class="stat-value" id="stat-disk">—</div>
-              <div class="stat-sub" id="stat-disk-sub">GB used</div>
+              <div class="stat-value" id="stat-disk">—%</div>
+              <div class="stat-sub" id="stat-disk-sub">— GB</div>
             </div>
             <div class="stat-progress-wrap">
               <div class="stat-progress-bar" role="progressbar" aria-label="Disk usage" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
@@ -2075,7 +2087,13 @@ const statNetworks       = $('#stat-networks');
 
 // Stats — System Resources
 const statCpu            = $('#stat-cpu');
+const statCpuSub         = $('#stat-cpu-sub');
+const statCpuFill        = $('#stat-cpu-fill');
+const statCpuPct         = $('#stat-cpu-pct');
 const statRam            = $('#stat-ram');
+const statRamSub         = $('#stat-ram-sub');
+const statRamFill        = $('#stat-ram-fill');
+const statRamPct         = $('#stat-ram-pct');
 const statDisk           = $('#stat-disk');
 const statDiskSub        = $('#stat-disk-sub');
 const statDiskFill       = $('#stat-disk-fill');
@@ -2213,6 +2231,7 @@ authForm.addEventListener('submit', async (e) => {
     sessionStorage.setItem(API_KEY_STORAGE, apiKey);
     hideAuth();
     await loadAll();
+    startSystemPolling();
   } catch (err) {
     authError.textContent = 'Connection error. Is the server reachable?';
     authError.classList.add('visible');
@@ -2222,6 +2241,7 @@ authForm.addEventListener('submit', async (e) => {
 });
 
 logoutBtn.addEventListener('click', () => {
+  stopSystemPolling();
   showAuth();
   toast('info', 'Signed out');
 });
@@ -2467,26 +2487,45 @@ function updateStats() {
   statNetworks.textContent   = networks.length;
 }
 
+function _updateProgressCard(valueEl, subEl, fillEl, pctEl, pct, subText) {
+  valueEl.textContent = `${pct.toFixed(1)}%`;
+  subEl.textContent = subText;
+  fillEl.style.width = `${Math.min(pct, 100)}%`;
+  fillEl.className = 'stat-progress-fill' +
+    (pct >= 85 ? ' pct-high' : pct < 60 ? ' pct-ok' : '');
+  pctEl.textContent = `${pct.toFixed(1)}%`;
+  const bar = fillEl.closest('[role="progressbar"]');
+  if (bar) bar.setAttribute('aria-valuenow', Math.round(pct));
+}
+
 async function loadSystem() {
   try {
     const sys = await api('GET', '/api/system');
-    statCpu.textContent = sys.cpu_count ?? '—';
-    statRam.textContent = sys.mem_total_gb != null ? Math.round(sys.mem_total_gb) : '—';
-
-    if (sys.disk_used_gb != null && sys.disk_total_gb != null) {
-      statDisk.textContent    = Math.round(sys.disk_used_gb);
-      statDiskSub.textContent = `/ ${Math.round(sys.disk_total_gb)} GB`;
-      const pct = sys.disk_used_pct != null ? sys.disk_used_pct : 0;
-      statDiskFill.style.width = `${Math.min(pct, 100)}%`;
-      statDiskFill.className   = 'stat-progress-fill' +
-        (pct >= 85 ? ' pct-high' : pct < 60 ? ' pct-ok' : '');
-      statDiskPct.textContent  = `${pct.toFixed(1)}%`;
-      const bar = statDiskFill.closest('[role="progressbar"]');
-      if (bar) bar.setAttribute('aria-valuenow', Math.round(pct));
-    }
+    // CPU
+    const cpuPct = sys.cpu_used_pct ?? 0;
+    _updateProgressCard(statCpu, statCpuSub, statCpuFill, statCpuPct,
+      cpuPct, `${sys.cpu_count ?? '—'} cores`);
+    // RAM
+    const ramPct = sys.mem_used_pct ?? 0;
+    _updateProgressCard(statRam, statRamSub, statRamFill, statRamPct,
+      ramPct, `${sys.mem_used_gb ?? '—'} / ${sys.mem_total_gb ?? '—'} GB`);
+    // Disk
+    const diskPct = sys.disk_used_pct ?? 0;
+    _updateProgressCard(statDisk, statDiskSub, statDiskFill, statDiskPct,
+      diskPct, `${sys.disk_used_gb ?? '—'} / ${sys.disk_total_gb ?? '—'} GB`);
   } catch (err) {
     // System stats are non-critical — fail silently
   }
+}
+
+// Auto-refresh system metrics every 5 seconds
+let _sysInterval = null;
+function startSystemPolling() {
+  if (_sysInterval) clearInterval(_sysInterval);
+  _sysInterval = setInterval(loadSystem, 5000);
+}
+function stopSystemPolling() {
+  if (_sysInterval) { clearInterval(_sysInterval); _sysInterval = null; }
 }
 
 // ─── Search ────────────────────────────────────────────────────────────
@@ -2929,6 +2968,7 @@ function setLoading(btn, on) {
     apiKey = saved;
     hideAuth();
     loadAll();
+    startSystemPolling();
   } else {
     authOverlay.style.display = 'flex';
     setTimeout(() => apiKeyInput.focus(), 100);

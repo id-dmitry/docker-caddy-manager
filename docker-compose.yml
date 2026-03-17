@@ -7,6 +7,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - /root/n8n-install/caddy-addon:/data/addons:rw
       - /root/n8n-install/Caddyfile:/data/Caddyfile:ro
+      - /proc:/host/proc:ro
     env_file:
       - .env
     environment:
