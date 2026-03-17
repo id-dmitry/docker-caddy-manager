@@ -284,6 +284,8 @@
       display: flex;
       align-items: center;
       gap: 2px;
+      max-width: 1320px;
+      margin: 0 auto;
       padding: 0 24px;
       background: rgba(10,14,26,0.9);
       backdrop-filter: blur(12px);
@@ -398,7 +400,7 @@
       color: var(--text);
       font-family: var(--font-sans);
       font-size: 0.875rem;
-      padding: 8px 12px 8px 34px;
+      padding: 8px 12px 8px 38px;
       transition: border-color var(--transition), box-shadow var(--transition);
       appearance: none;
       -webkit-appearance: none;
@@ -2128,6 +2130,15 @@ function renderDomains(filter = '') {
       <td><span class="port-pill">:${escHtml(String(d.port))}</span></td>
       <td class="td-network">${escHtml(d.network || '—')}</td>
       <td style="text-align:right;white-space:nowrap;">
+        <button class="btn btn-secondary btn-sm" style="margin-right:6px;"
+                onclick="openEditModalByDomain('${escAttr(d.container)}')"
+                aria-label="Edit route for ${escHtml(d.subdomain)}.${escHtml(BASE_DOMAIN)}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+          Edit
+        </button>
         <button class="btn btn-danger-ghost"
                 onclick="promptDelete('${escAttr(d.subdomain)}')"
                 aria-label="Delete route for ${escHtml(d.subdomain)}.${escHtml(BASE_DOMAIN)}">
@@ -2152,7 +2163,7 @@ function renderContainers(filter = '') {
         (c.name   || '').toLowerCase().includes(q) ||
         (c.image  || '').toLowerCase().includes(q) ||
         (c.status || '').toLowerCase().includes(q) ||
-        (c.domain || '').toLowerCase().includes(q)
+        (c.domain ? (c.domain.domain || '') : '').toLowerCase().includes(q)
       )
     : containers;
 
@@ -2192,10 +2203,11 @@ function renderContainers(filter = '') {
     const ports = (c.ports || []).map(p =>
       `<span class="port-pill">${escHtml(String(p))}</span>`
     ).join(' ');
-    const domainCell = c.domain
+    const domainLabel = c.domain ? (c.domain.domain || c.domain.subdomain || '') : '';
+    const domainCell = domainLabel
       ? `<span class="domain-badge">
            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-           ${escHtml(c.domain)}
+           ${escHtml(domainLabel)}
          </span>`
       : `<span style="color:var(--text-muted);font-size:0.75rem">—</span>`;
 
@@ -2264,6 +2276,8 @@ function openAddModal() {
   // Populate network dropdown
   addNetworkSelect.innerHTML = '<option value="">Select a network…</option>' +
     networks.map(n => `<option value="${escAttr(n)}">${escHtml(n)}</option>`).join('');
+  // Default to localai_default if available
+  if (networks.includes('localai_default')) addNetworkSelect.value = 'localai_default';
 
   modalAddOverlay.classList.add('open');
   modalAddOverlay.removeAttribute('aria-hidden');
@@ -2351,6 +2365,11 @@ addRouteForm.addEventListener('submit', async (e) => {
 });
 
 // ─── Edit Domain Modal ─────────────────────────────────────────────────
+function openEditModalByDomain(containerName) {
+  // Alias: opens edit modal from domain tab using container name
+  openEditModal(containerName);
+}
+
 function openEditModal(containerName) {
   const container = containers.find(c => c.name === containerName);
   if (!container) return;
@@ -2392,6 +2411,8 @@ function openEditModal(containerName) {
     networks.map(n => `<option value="${escAttr(n)}">${escHtml(n)}</option>`).join('');
   if (existingDomain && existingDomain.network) {
     editNetworkSelect.value = existingDomain.network;
+  } else if (networks.includes('localai_default')) {
+    editNetworkSelect.value = 'localai_default';
   } else if (container.networks && container.networks.length === 1) {
     editNetworkSelect.value = container.networks[0];
   }
