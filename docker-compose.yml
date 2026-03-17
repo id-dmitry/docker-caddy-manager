@@ -6,13 +6,32 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /root/n8n-install/caddy-addon:/data/addons:rw
+    env_file:
+      - .env
     environment:
       ADDON_DIR: /data/addons
       CADDY_CONTAINER: caddy
       BASE_DOMAIN: some-tools.org
-      API_KEY: ${API_KEY:-caddy-mgr-secret-2026}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=10M
     networks:
       - localai_default
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 networks:
   localai_default:

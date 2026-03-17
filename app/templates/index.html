@@ -1,429 +1,2015 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Caddy Manager</title>
-    <style>
-        :root {
-            --bg: #0f1117;
-            --surface: #1a1d27;
-            --surface2: #242736;
-            --border: #2e3244;
-            --text: #e4e6f0;
-            --text-dim: #8b8fa3;
-            --accent: #4f8cff;
-            --accent-hover: #6ba0ff;
-            --danger: #ff4f6d;
-            --danger-hover: #ff6b85;
-            --success: #34d399;
-            --warning: #fbbf24;
-            --radius: 8px;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-        }
-        .header {
-            background: var(--surface);
-            border-bottom: 1px solid var(--border);
-            padding: 16px 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .header h1 { font-size: 20px; font-weight: 600; }
-        .header .subtitle { color: var(--text-dim); font-size: 13px; margin-left: 12px; }
-        .header-actions { display: flex; gap: 8px; }
-        .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Caddy Manager — {{ base_domain }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ─── Design Tokens ───────────────────────────────────────────── */
+    :root {
+      --bg:           #0a0e1a;
+      --bg-elevated:  #0f1525;
+      --bg-card:      #131929;
+      --bg-input:     #0d1220;
+      --bg-hover:     #1a2035;
+      --border:       #1e2d45;
+      --border-focus: #3b82f6;
+      --border-subtle:#162038;
 
-        /* Auth */
-        .auth-overlay {
-            position: fixed; inset: 0; background: var(--bg);
-            display: flex; align-items: center; justify-content: center; z-index: 100;
-        }
-        .auth-box {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: var(--radius); padding: 32px; width: 360px; text-align: center;
-        }
-        .auth-box h2 { margin-bottom: 16px; }
-        .auth-box input {
-            width: 100%; padding: 10px 12px; margin-bottom: 12px;
-            background: var(--surface2); border: 1px solid var(--border);
-            border-radius: var(--radius); color: var(--text); font-size: 14px;
-        }
+      --blue:         #3b82f6;
+      --blue-dim:     #2563eb;
+      --blue-glow:    rgba(59,130,246,0.15);
+      --blue-subtle:  rgba(59,130,246,0.08);
 
-        /* Buttons */
-        .btn {
-            padding: 8px 16px; border: none; border-radius: var(--radius);
-            font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s;
-        }
-        .btn-primary { background: var(--accent); color: #fff; }
-        .btn-primary:hover { background: var(--accent-hover); }
-        .btn-danger { background: var(--danger); color: #fff; }
-        .btn-danger:hover { background: var(--danger-hover); }
-        .btn-ghost { background: transparent; color: var(--text-dim); border: 1px solid var(--border); }
-        .btn-ghost:hover { background: var(--surface2); color: var(--text); }
-        .btn-sm { padding: 5px 10px; font-size: 12px; }
+      --green:        #10b981;
+      --green-subtle: rgba(16,185,129,0.1);
+      --red:          #ef4444;
+      --red-subtle:   rgba(239,68,68,0.1);
+      --amber:        #f59e0b;
+      --amber-subtle: rgba(245,158,11,0.1);
 
-        /* Table */
-        .card {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: var(--radius); overflow: hidden; margin-bottom: 24px;
-        }
-        .card-header {
-            padding: 16px 20px; border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; justify-content: space-between;
-        }
-        .card-header h2 { font-size: 16px; font-weight: 600; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px 20px; text-align: left; }
-        th { color: var(--text-dim); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border); }
-        td { border-bottom: 1px solid var(--border); font-size: 14px; }
-        tr:last-child td { border-bottom: none; }
-        tr:hover td { background: var(--surface2); }
-        .badge {
-            display: inline-block; padding: 2px 8px; border-radius: 12px;
-            font-size: 11px; font-weight: 600;
-        }
-        .badge-managed { background: rgba(79,140,255,.15); color: var(--accent); }
-        .badge-external { background: rgba(251,191,36,.15); color: var(--warning); }
-        .badge-net { background: rgba(52,211,153,.15); color: var(--success); font-size: 11px; margin: 1px 2px; }
-        a.domain-link { color: var(--accent); text-decoration: none; }
-        a.domain-link:hover { text-decoration: underline; }
+      --text:         #e2e8f0;
+      --text-muted:   #64748b;
+      --text-dim:     #94a3b8;
+      --text-accent:  #3b82f6;
 
-        /* Modal */
-        .modal-overlay {
-            display: none; position: fixed; inset: 0;
-            background: rgba(0,0,0,.6); z-index: 50;
-            align-items: center; justify-content: center;
-        }
-        .modal-overlay.active { display: flex; }
-        .modal {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: var(--radius); padding: 24px; width: 480px; max-width: 95vw;
-        }
-        .modal h3 { margin-bottom: 16px; font-size: 18px; }
-        .form-group { margin-bottom: 14px; }
-        .form-group label { display: block; font-size: 13px; color: var(--text-dim); margin-bottom: 4px; }
-        .form-group input, .form-group select {
-            width: 100%; padding: 10px 12px;
-            background: var(--surface2); border: 1px solid var(--border);
-            border-radius: var(--radius); color: var(--text); font-size: 14px;
-        }
-        .form-group select option { background: var(--surface2); }
-        .domain-preview {
-            font-size: 13px; color: var(--text-dim); margin-top: 4px;
-        }
-        .domain-preview span { color: var(--accent); font-weight: 500; }
-        .form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+      --font-mono:    'Fira Code', 'Cascadia Code', monospace;
+      --font-sans:    'Fira Sans', system-ui, sans-serif;
 
-        /* Toast */
-        .toast-container { position: fixed; top: 16px; right: 16px; z-index: 200; }
-        .toast {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: var(--radius); padding: 12px 16px; margin-bottom: 8px;
-            font-size: 13px; min-width: 280px; box-shadow: 0 8px 24px rgba(0,0,0,.3);
-            animation: slideIn .2s ease-out;
-        }
-        .toast.success { border-left: 3px solid var(--success); }
-        .toast.error { border-left: 3px solid var(--danger); }
-        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+      --radius-sm:    4px;
+      --radius:       8px;
+      --radius-lg:    12px;
+      --radius-xl:    16px;
 
-        /* Loading */
-        .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .empty-state { padding: 40px; text-align: center; color: var(--text-dim); }
-    </style>
+      --shadow-card:  0 1px 3px rgba(0,0,0,0.4), 0 0 0 1px var(--border);
+      --shadow-modal: 0 24px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(59,130,246,0.1);
+      --shadow-glow:  0 0 20px rgba(59,130,246,0.12);
+
+      --z-toast:  100;
+      --z-modal:  50;
+      --z-header: 30;
+      --z-overlay:20;
+
+      --transition: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ─── Reset & Base ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { font-size: 16px; scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Subtle grid texture */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(59,130,246,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59,130,246,0.02) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ─── Typography ───────────────────────────────────────────────── */
+    h1, h2, h3 {
+      font-family: var(--font-sans);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    code, .mono {
+      font-family: var(--font-mono);
+      font-size: 0.875em;
+    }
+
+    /* ─── Layout ───────────────────────────────────────────────────── */
+    #app {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* ─── Auth Overlay ─────────────────────────────────────────────── */
+    #auth-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      animation: fadeIn 0.4s ease;
+    }
+
+    #auth-overlay::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .auth-card {
+      width: 100%;
+      max-width: 400px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 40px;
+      box-shadow: var(--shadow-modal);
+      position: relative;
+    }
+
+    .auth-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .auth-logo-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--blue-subtle);
+      border: 1px solid rgba(59,130,246,0.3);
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--blue);
+    }
+
+    .auth-logo-text {
+      font-size: 1.25rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: var(--text);
+    }
+
+    .auth-logo-domain {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      margin-top: 2px;
+    }
+
+    .auth-title {
+      font-size: 1.5rem;
+      margin-bottom: 6px;
+    }
+
+    .auth-subtitle {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      margin-bottom: 28px;
+    }
+
+    .auth-error {
+      display: none;
+      background: var(--red-subtle);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: var(--radius-sm);
+      color: #fca5a5;
+      font-size: 0.8rem;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      animation: slideDown 0.2s ease;
+    }
+
+    .auth-error.visible { display: block; }
+
+    /* ─── Header ───────────────────────────────────────────────────── */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: var(--z-header);
+      background: rgba(10,14,26,0.9);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--blue-subtle);
+      border: 1px solid rgba(59,130,246,0.25);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--blue);
+      flex-shrink: 0;
+    }
+
+    .brand-name {
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .brand-sep {
+      color: var(--border);
+      font-family: var(--font-mono);
+      font-size: 1rem;
+      margin: 0 2px;
+    }
+
+    .brand-domain {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      animation: pulse-dot 2s infinite;
+    }
+
+    /* ─── Main Content ─────────────────────────────────────────────── */
+    main {
+      flex: 1;
+      max-width: 1280px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    /* ─── Section Header ───────────────────────────────────────────── */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      gap: 12px;
+    }
+
+    .section-title-group {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+
+    .section-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      font-family: var(--font-sans);
+    }
+
+    .section-count {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: 1px 8px;
+    }
+
+    /* ─── Card ─────────────────────────────────────────────────────── */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    /* ─── Table ────────────────────────────────────────────────────── */
+    .table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+
+    thead {
+      background: var(--bg-elevated);
+      border-bottom: 1px solid var(--border);
+    }
+
+    thead th {
+      padding: 11px 16px;
+      text-align: left;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border-subtle);
+      transition: background var(--transition);
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+
+    tbody tr:hover {
+      background: var(--bg-hover);
+      cursor: default;
+    }
+
+    tbody td {
+      padding: 12px 16px;
+      vertical-align: middle;
+    }
+
+    .td-domain {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--blue);
+      white-space: nowrap;
+    }
+
+    .td-arrow {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      padding: 0 4px;
+    }
+
+    .td-container {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--text);
+    }
+
+    .td-network {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .empty-row td {
+      padding: 48px 16px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    .empty-icon {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 12px;
+      color: var(--border);
+    }
+
+    /* ─── Badges ───────────────────────────────────────────────────── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 500;
+      padding: 3px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    .badge-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .badge-green {
+      background: var(--green-subtle);
+      color: #34d399;
+      border: 1px solid rgba(16,185,129,0.2);
+    }
+
+    .badge-green .badge-dot { background: var(--green); }
+
+    .badge-blue {
+      background: var(--blue-subtle);
+      color: #93c5fd;
+      border: 1px solid rgba(59,130,246,0.2);
+    }
+
+    .badge-amber {
+      background: var(--amber-subtle);
+      color: #fcd34d;
+      border: 1px solid rgba(245,158,11,0.2);
+    }
+
+    .badge-muted {
+      background: rgba(100,116,139,0.1);
+      color: var(--text-muted);
+      border: 1px solid rgba(100,116,139,0.15);
+    }
+
+    /* Port pill */
+    .port-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 7px;
+    }
+
+    /* ─── Buttons ──────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      font-weight: 500;
+      border-radius: var(--radius);
+      border: none;
+      cursor: pointer;
+      transition:
+        background var(--transition),
+        box-shadow var(--transition),
+        transform var(--transition),
+        opacity var(--transition);
+      text-decoration: none;
+      white-space: nowrap;
+      line-height: 1;
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid var(--blue);
+      outline-offset: 2px;
+    }
+
+    .btn:active { transform: scale(0.97); }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-primary {
+      background: var(--blue);
+      color: #fff;
+      padding: 9px 16px;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #4f8ef7;
+      box-shadow: 0 0 0 3px var(--blue-glow);
+    }
+
+    .btn-secondary {
+      background: var(--bg-elevated);
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      padding: 9px 16px;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--bg-hover);
+      color: var(--text);
+      border-color: var(--text-muted);
+    }
+
+    .btn-danger-ghost {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid transparent;
+      padding: 6px 8px;
+      border-radius: var(--radius-sm);
+    }
+
+    .btn-danger-ghost:hover:not(:disabled) {
+      background: var(--red-subtle);
+      color: #f87171;
+      border-color: rgba(239,68,68,0.2);
+    }
+
+    .btn-icon {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      padding: 7px;
+      border-radius: var(--radius-sm);
+    }
+
+    .btn-icon:hover:not(:disabled) {
+      background: var(--bg-hover);
+      color: var(--text);
+    }
+
+    .btn-sm { font-size: 0.8rem; padding: 6px 12px; }
+
+    .btn-loading {
+      position: relative;
+      color: transparent !important;
+    }
+
+    .btn-loading::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    /* ─── Form Controls ────────────────────────────────────────────── */
+    .form-group { margin-bottom: 20px; }
+    .form-group:last-of-type { margin-bottom: 0; }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+      font-family: var(--font-sans);
+    }
+
+    label .required {
+      color: var(--red);
+      margin-left: 3px;
+    }
+
+    label .hint {
+      font-weight: 400;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      margin-left: 6px;
+    }
+
+    .input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-prefix {
+      position: absolute;
+      left: 12px;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    .input-suffix {
+      position: absolute;
+      right: 12px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    input[type="text"],
+    input[type="password"],
+    input[type="number"],
+    select {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 0.875rem;
+      padding: 10px 14px;
+      transition: border-color var(--transition), box-shadow var(--transition);
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus,
+    input[type="number"]:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px var(--blue-glow);
+    }
+
+    input::placeholder { color: var(--text-muted); }
+
+    /* Prefix-padded input */
+    .has-prefix { padding-left: 0; /* set via inline */ }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 36px;
+      cursor: pointer;
+    }
+
+    select option { background: #1a2035; }
+
+    .field-hint {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 5px;
+    }
+
+    .field-error {
+      font-size: 0.75rem;
+      color: #f87171;
+      margin-top: 5px;
+      display: none;
+    }
+
+    .field-error.visible { display: block; }
+
+    input.invalid, select.invalid {
+      border-color: var(--red);
+    }
+
+    /* ─── Domain Preview ───────────────────────────────────────────── */
+    .domain-preview {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .domain-preview-full {
+      color: var(--blue);
+    }
+
+    /* ─── Modal ────────────────────────────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: var(--z-modal);
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .modal-overlay.open {
+      display: flex;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .modal {
+      width: 100%;
+      max-width: 520px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-modal);
+      animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow: hidden;
+      max-height: calc(100vh - 48px);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .modal-title {
+      font-size: 1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .modal-title-icon {
+      width: 28px;
+      height: 28px;
+      background: var(--blue-subtle);
+      border: 1px solid rgba(59,130,246,0.25);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--blue);
+    }
+
+    .modal-body {
+      padding: 24px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      flex-shrink: 0;
+      background: var(--bg-elevated);
+    }
+
+    /* ─── Confirm Dialog ───────────────────────────────────────────── */
+    .confirm-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: calc(var(--z-modal) + 10);
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .confirm-overlay.open {
+      display: flex;
+      animation: fadeIn 0.15s ease;
+    }
+
+    .confirm-card {
+      width: 100%;
+      max-width: 400px;
+      background: var(--bg-card);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+      animation: slideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .confirm-icon {
+      width: 44px;
+      height: 44px;
+      background: var(--red-subtle);
+      border: 1px solid rgba(239,68,68,0.25);
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--red);
+      margin-bottom: 16px;
+    }
+
+    .confirm-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .confirm-desc {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .confirm-target {
+      font-family: var(--font-mono);
+      color: var(--text);
+    }
+
+    .confirm-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .btn-danger {
+      background: var(--red);
+      color: #fff;
+      padding: 9px 16px;
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background: #dc2626;
+    }
+
+    /* ─── Toast ────────────────────────────────────────────────────── */
+    #toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: var(--z-toast);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .toast {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      min-width: 280px;
+      max-width: 380px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      pointer-events: auto;
+      animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      font-size: 0.875rem;
+    }
+
+    .toast.leaving {
+      animation: slideOutRight 0.25s ease forwards;
+    }
+
+    .toast-icon {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    .toast-success {
+      border-left: 3px solid var(--green);
+    }
+
+    .toast-success .toast-icon { color: var(--green); }
+
+    .toast-error {
+      border-left: 3px solid var(--red);
+    }
+
+    .toast-error .toast-icon { color: var(--red); }
+
+    .toast-info {
+      border-left: 3px solid var(--blue);
+    }
+
+    .toast-info .toast-icon { color: var(--blue); }
+
+    .toast-body {
+      flex: 1;
+    }
+
+    .toast-title {
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.3;
+    }
+
+    .toast-msg {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      margin-top: 2px;
+    }
+
+    .toast-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 2px;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color var(--transition);
+    }
+
+    .toast-close:hover { color: var(--text); }
+
+    /* ─── Skeleton Loader ──────────────────────────────────────────── */
+    .skeleton {
+      background: linear-gradient(
+        90deg,
+        var(--bg-elevated) 25%,
+        var(--bg-hover) 50%,
+        var(--bg-elevated) 75%
+      );
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: var(--radius-sm);
+    }
+
+    .skeleton-row td {
+      padding: 14px 16px;
+    }
+
+    .skel {
+      height: 14px;
+      border-radius: 4px;
+    }
+
+    /* ─── Refresh Button ───────────────────────────────────────────── */
+    .spin { animation: spin 1s linear infinite; }
+
+    /* ─── Divider ──────────────────────────────────────────────────── */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 24px 0;
+    }
+
+    /* ─── Stats Row ────────────────────────────────────────────────── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-family: var(--font-mono);
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .stat-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* ─── Kbd ──────────────────────────────────────────────────────── */
+    kbd {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 6px;
+      color: var(--text-muted);
+    }
+
+    /* ─── Scrollbar ────────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+    /* ─── Animations ───────────────────────────────────────────────── */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(16px) scale(0.98); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slideInRight {
+      from { opacity: 0; transform: translateX(16px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes slideOutRight {
+      from { opacity: 1; transform: translateX(0); }
+      to   { opacity: 0; transform: translateX(20px); }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes shimmer {
+      to { background-position: -200% 0; }
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* Respect reduced-motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* ─── Responsive ───────────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      header { padding: 0 16px; }
+
+      .brand-domain { display: none; }
+
+      main { padding: 20px 16px 48px; gap: 24px; }
+
+      .stats-row { grid-template-columns: 1fr 1fr; }
+
+      .modal-body { padding: 20px 16px; }
+      .modal-header { padding: 16px 20px; }
+      .modal-footer { padding: 14px 16px; }
+
+      .confirm-card { padding: 24px 20px; }
+
+      #toast-container {
+        bottom: 16px;
+        right: 16px;
+        left: 16px;
+      }
+
+      .toast { min-width: 0; max-width: 100%; }
+
+      .auth-card { padding: 28px 24px; }
+    }
+
+    @media (max-width: 480px) {
+      .section-header { flex-direction: column; align-items: flex-start; }
+      .stats-row { grid-template-columns: 1fr; }
+    }
+
+    /* ─── Utility ──────────────────────────────────────────────────── */
+    .hidden { display: none !important; }
+    .sr-only {
+      position: absolute;
+      width: 1px; height: 1px;
+      padding: 0; margin: -1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      white-space: nowrap;
+      border: 0;
+    }
+  </style>
 </head>
 <body>
 
-<!-- Auth overlay -->
-<div class="auth-overlay" id="authOverlay">
-    <div class="auth-box">
-        <h2>Caddy Manager</h2>
-        <p style="color: var(--text-dim); margin-bottom: 20px; font-size: 14px;">Enter API key to continue</p>
-        <input type="password" id="apiKeyInput" placeholder="API Key" autofocus>
-        <button class="btn btn-primary" style="width: 100%;" onclick="doLogin()">Login</button>
+<!-- ═══ Auth Overlay ══════════════════════════════════════════════════ -->
+<div id="auth-overlay" role="dialog" aria-modal="true" aria-labelledby="auth-heading">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="auth-logo-text">caddy-manager</div>
+        <div class="auth-logo-domain mono">{{ base_domain }}</div>
+      </div>
     </div>
+
+    <h1 class="auth-title" id="auth-heading">Sign in</h1>
+    <p class="auth-subtitle">Enter your API key to access the proxy dashboard.</p>
+
+    <div class="auth-error" id="auth-error" role="alert"></div>
+
+    <form id="auth-form" novalidate>
+      <div class="form-group">
+        <label for="api-key-input">
+          API Key <span class="required" aria-label="required">*</span>
+        </label>
+        <div class="input-wrap">
+          <input
+            type="password"
+            id="api-key-input"
+            name="api_key"
+            autocomplete="current-password"
+            placeholder="sk-••••••••••••••••"
+            required
+          >
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px;" id="auth-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+          <polyline points="10 17 15 12 10 7"/>
+          <line x1="15" y1="12" x2="3" y2="12"/>
+        </svg>
+        Authenticate
+      </button>
+    </form>
+  </div>
 </div>
 
-<!-- Header -->
-<div class="header">
-    <div style="display:flex; align-items:center;">
-        <h1>Caddy Manager</h1>
-        <span class="subtitle">{{ base_domain }}</span>
+<!-- ═══ App Shell ═════════════════════════════════════════════════════ -->
+<div id="app">
+
+  <!-- Header -->
+  <header role="banner">
+    <div class="header-brand">
+      <div class="brand-icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+      </div>
+      <span class="brand-name">caddy-manager</span>
+      <span class="brand-sep" aria-hidden="true">/</span>
+      <span class="brand-domain">{{ base_domain }}</span>
     </div>
+
     <div class="header-actions">
-        <button class="btn btn-ghost btn-sm" onclick="reloadCaddy()">Reload Caddy</button>
-        <button class="btn btn-ghost btn-sm" onclick="refreshAll()">Refresh</button>
-        <button class="btn btn-ghost btn-sm" onclick="logout()">Logout</button>
+      <div class="status-indicator" aria-label="Caddy service: online">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span>online</span>
+      </div>
+      <button class="btn btn-icon" id="refresh-btn" title="Refresh data (R)" aria-label="Refresh dashboard data">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" id="refresh-icon">
+          <polyline points="23 4 23 10 17 10"/>
+          <polyline points="1 20 1 14 7 14"/>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+      </button>
+      <button class="btn btn-secondary btn-sm" id="logout-btn" aria-label="Sign out">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        Sign out
+      </button>
     </div>
+  </header>
+
+  <!-- Main -->
+  <main role="main">
+
+    <!-- Stats Row -->
+    <div class="stats-row" id="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Domains</div>
+        <div class="stat-value" id="stat-domains">—</div>
+        <div class="stat-sub">configured routes</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Containers</div>
+        <div class="stat-value" id="stat-containers">—</div>
+        <div class="stat-sub">running</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Networks</div>
+        <div class="stat-value" id="stat-networks">—</div>
+        <div class="stat-sub">docker networks</div>
+      </div>
+    </div>
+
+    <!-- Domains Section -->
+    <section aria-labelledby="domains-heading">
+      <div class="section-header">
+        <div class="section-title-group">
+          <h2 class="section-title" id="domains-heading">Proxy Routes</h2>
+          <span class="section-count" id="domains-count" aria-live="polite">0</span>
+        </div>
+        <button class="btn btn-primary btn-sm" id="add-domain-btn" aria-label="Add new proxy route">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Add Route
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table aria-label="Configured proxy routes">
+            <thead>
+              <tr>
+                <th scope="col">Domain</th>
+                <th scope="col">Container</th>
+                <th scope="col">Port</th>
+                <th scope="col">Network</th>
+                <th scope="col"><span class="sr-only">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody id="domains-tbody">
+              <!-- Skeleton rows on first load -->
+              <tr class="skeleton-row">
+                <td><div class="skel skeleton" style="width:160px;"></div></td>
+                <td><div class="skel skeleton" style="width:110px;"></div></td>
+                <td><div class="skel skeleton" style="width:50px;"></div></td>
+                <td><div class="skel skeleton" style="width:90px;"></div></td>
+                <td></td>
+              </tr>
+              <tr class="skeleton-row">
+                <td><div class="skel skeleton" style="width:120px;"></div></td>
+                <td><div class="skel skeleton" style="width:140px;"></div></td>
+                <td><div class="skel skeleton" style="width:50px;"></div></td>
+                <td><div class="skel skeleton" style="width:80px;"></div></td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Containers Section -->
+    <section aria-labelledby="containers-heading">
+      <div class="section-header">
+        <div class="section-title-group">
+          <h2 class="section-title" id="containers-heading">Docker Containers</h2>
+          <span class="section-count" id="containers-count" aria-live="polite">0</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table aria-label="Running Docker containers">
+            <thead>
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Image</th>
+                <th scope="col">Status</th>
+                <th scope="col">Networks</th>
+                <th scope="col">Ports</th>
+              </tr>
+            </thead>
+            <tbody id="containers-tbody">
+              <tr class="skeleton-row">
+                <td><div class="skel skeleton" style="width:130px;"></div></td>
+                <td><div class="skel skeleton" style="width:160px;"></div></td>
+                <td><div class="skel skeleton" style="width:70px;"></div></td>
+                <td><div class="skel skeleton" style="width:100px;"></div></td>
+                <td><div class="skel skeleton" style="width:60px;"></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
 </div>
 
-<!-- Content -->
-<div class="container">
-    <!-- Domains -->
-    <div class="card">
-        <div class="card-header">
-            <h2>Domains</h2>
-            <button class="btn btn-primary btn-sm" onclick="openModal()">+ Add Domain</button>
+<!-- ═══ Add Route Modal ═══════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">
+        <div class="modal-title-icon" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
         </div>
-        <div id="domainsTable">
-            <div class="empty-state"><div class="spinner"></div> Loading...</div>
-        </div>
+        <span id="modal-title">New Proxy Route</span>
+      </div>
+      <button class="btn btn-icon" id="modal-close" aria-label="Close modal">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
     </div>
 
-    <!-- Containers -->
-    <div class="card">
-        <div class="card-header">
-            <h2>Containers</h2>
+    <form id="add-route-form" novalidate>
+      <div class="modal-body">
+
+        <!-- Subdomain -->
+        <div class="form-group">
+          <label for="subdomain-input">
+            Subdomain <span class="required" aria-label="required">*</span>
+            <span class="hint">— no dots, only a-z 0-9 -</span>
+          </label>
+          <div class="input-wrap">
+            <input
+              type="text"
+              id="subdomain-input"
+              name="subdomain"
+              placeholder="myapp"
+              pattern="[a-z0-9\-]+"
+              autocomplete="off"
+              spellcheck="false"
+              required
+            >
+          </div>
+          <div class="field-error" id="subdomain-error"></div>
+          <div class="domain-preview" id="domain-preview" aria-live="polite">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="2" y1="12" x2="22" y2="12"/>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+            <span>Preview: </span>
+            <span class="domain-preview-full" id="domain-preview-text">—</span>
+          </div>
         </div>
-        <div id="containersTable">
-            <div class="empty-state"><div class="spinner"></div> Loading...</div>
+
+        <!-- Container -->
+        <div class="form-group">
+          <label for="container-select">
+            Container <span class="required" aria-label="required">*</span>
+          </label>
+          <select id="container-select" name="container" required aria-describedby="container-error">
+            <option value="">Select a container…</option>
+          </select>
+          <div class="field-error" id="container-error"></div>
         </div>
-    </div>
+
+        <!-- Port -->
+        <div class="form-group">
+          <label for="port-input">
+            Port <span class="required" aria-label="required">*</span>
+            <span class="hint">— container's internal port</span>
+          </label>
+          <div class="input-wrap">
+            <input
+              type="number"
+              id="port-input"
+              name="port"
+              placeholder="8080"
+              min="1"
+              max="65535"
+              required
+            >
+          </div>
+          <div class="field-error" id="port-error"></div>
+        </div>
+
+        <!-- Network -->
+        <div class="form-group">
+          <label for="network-select">
+            Docker Network <span class="required" aria-label="required">*</span>
+          </label>
+          <select id="network-select" name="network" required aria-describedby="network-error">
+            <option value="">Select a network…</option>
+          </select>
+          <div class="field-error" id="network-error"></div>
+          <div class="field-hint">Must be a network shared by Caddy and the container.</div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="modal-cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="submit-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Add Route
+        </button>
+      </div>
+    </form>
+  </div>
 </div>
 
-<!-- Add Domain Modal -->
-<div class="modal-overlay" id="modalOverlay">
-    <div class="modal">
-        <h3>Add Domain</h3>
-        <div class="form-group">
-            <label>Subdomain</label>
-            <input type="text" id="fSubdomain" placeholder="myapp" oninput="updatePreview()">
-            <div class="domain-preview">
-                <span id="domainPreview">myapp</span>.{{ base_domain }}
-            </div>
-        </div>
-        <div class="form-group">
-            <label>Container</label>
-            <select id="fContainer">
-                <option value="">Select container...</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>Port</label>
-            <input type="number" id="fPort" placeholder="80" value="80">
-        </div>
-        <div class="form-group">
-            <label>Network (connect container to this network)</label>
-            <select id="fNetwork">
-                <option value="">No change (keep current)</option>
-            </select>
-        </div>
-        <div class="form-actions">
-            <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-            <button class="btn btn-primary" id="btnCreate" onclick="createDomain()">Create</button>
-        </div>
+<!-- ═══ Confirm Delete Dialog ═════════════════════════════════════════ -->
+<div class="confirm-overlay" id="confirm-overlay" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-desc">
+  <div class="confirm-card">
+    <div class="confirm-icon" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 5 6 21 6"/>
+        <path d="M19 6l-1 14H6L5 6"/>
+        <path d="M10 11v6"/>
+        <path d="M14 11v6"/>
+        <path d="M9 6V4h6v2"/>
+      </svg>
     </div>
+    <h3 class="confirm-title" id="confirm-title">Delete Route</h3>
+    <p class="confirm-desc" id="confirm-desc">
+      Remove proxy route for <span class="confirm-target" id="confirm-domain"></span>?
+      <br>This cannot be undone.
+    </p>
+    <div class="confirm-actions">
+      <button class="btn btn-secondary" id="confirm-cancel">Cancel</button>
+      <button class="btn btn-danger" id="confirm-delete">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6l-1 14H6L5 6"/>
+          <path d="M9 6V4h6v2"/>
+        </svg>
+        Delete
+      </button>
+    </div>
+  </div>
 </div>
 
-<!-- Toast container -->
-<div class="toast-container" id="toasts"></div>
+<!-- ═══ Toast Container ═══════════════════════════════════════════════ -->
+<div id="toast-container" aria-live="polite" aria-atomic="false"></div>
 
+<!-- ═══ Application JS ════════════════════════════════════════════════ -->
 <script>
-const BASE = '';
-let API_KEY = localStorage.getItem('caddy_api_key') || '';
+'use strict';
 
-// --- Auth ---
-function checkAuth() {
-    if (!API_KEY) {
-        document.getElementById('authOverlay').style.display = 'flex';
-    } else {
-        document.getElementById('authOverlay').style.display = 'none';
-        refreshAll();
-    }
-}
+// ─── Configuration ────────────────────────────────────────────────────
+const BASE_DOMAIN = '{{ base_domain }}';
+const API_KEY_STORAGE = 'caddy_mgr_key';
+const TOAST_DURATION = 4000;
 
-function doLogin() {
-    API_KEY = document.getElementById('apiKeyInput').value.trim();
-    if (!API_KEY) return;
-    localStorage.setItem('caddy_api_key', API_KEY);
-    document.getElementById('authOverlay').style.display = 'none';
-    refreshAll();
-}
-
-function logout() {
-    API_KEY = '';
-    localStorage.removeItem('caddy_api_key');
-    document.getElementById('authOverlay').style.display = 'flex';
-}
-
-document.getElementById('apiKeyInput').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-
-// --- API helpers ---
-async function api(method, path, body = null) {
-    const opts = {
-        method,
-        headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' },
-    };
-    if (body) opts.body = JSON.stringify(body);
-    const res = await fetch(BASE + path, opts);
-    if (res.status === 401 || res.status === 403) {
-        toast('Invalid API key', 'error');
-        logout();
-        throw new Error('Unauthorized');
-    }
-    if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: res.statusText }));
-        throw new Error(err.detail || JSON.stringify(err));
-    }
-    return res.json();
-}
-
-// --- Toast ---
-function toast(msg, type = 'success') {
-    const el = document.createElement('div');
-    el.className = `toast ${type}`;
-    el.textContent = msg;
-    document.getElementById('toasts').appendChild(el);
-    setTimeout(() => el.remove(), 4000);
-}
-
-// --- Data loading ---
+// ─── State ────────────────────────────────────────────────────────────
+let apiKey = '';
+let domains = [];
 let containers = [];
 let networks = [];
+let deletePendingDomain = null;
 
-async function refreshAll() {
-    await Promise.all([loadDomains(), loadContainers(), loadNetworks()]);
+// ─── DOM refs ─────────────────────────────────────────────────────────
+const $ = (sel, ctx = document) => ctx.querySelector(sel);
+const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
+
+const authOverlay     = $('#auth-overlay');
+const authForm        = $('#auth-form');
+const authError       = $('#auth-error');
+const authBtn         = $('#auth-btn');
+const apiKeyInput     = $('#api-key-input');
+
+const appShell        = $('#app');
+const refreshBtn      = $('#refresh-btn');
+const refreshIcon     = $('#refresh-icon');
+const logoutBtn       = $('#logout-btn');
+
+const domainsTbody    = $('#domains-tbody');
+const containersTbody = $('#containers-tbody');
+const domainsCount    = $('#domains-count');
+const containersCount = $('#containers-count');
+const statDomains     = $('#stat-domains');
+const statContainers  = $('#stat-containers');
+const statNetworks    = $('#stat-networks');
+
+const modalOverlay    = $('#modal-overlay');
+const modalClose      = $('#modal-close');
+const modalCancel     = $('#modal-cancel');
+const addDomainBtn    = $('#add-domain-btn');
+const addRouteForm    = $('#add-route-form');
+const submitBtn       = $('#submit-btn');
+const subdomainInput  = $('#subdomain-input');
+const containerSelect = $('#container-select');
+const portInput       = $('#port-input');
+const networkSelect   = $('#network-select');
+const domainPreviewText = $('#domain-preview-text');
+
+const confirmOverlay  = $('#confirm-overlay');
+const confirmCancel   = $('#confirm-cancel');
+const confirmDelete   = $('#confirm-delete');
+const confirmDomain   = $('#confirm-domain');
+
+// ─── Toast ─────────────────────────────────────────────────────────────
+const toastContainer = $('#toast-container');
+
+const ICONS = {
+  success: `<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg>`,
+  error:   `<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
+  info:    `<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+};
+
+function toast(type, title, msg = '') {
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.innerHTML = `
+    ${ICONS[type] || ICONS.info}
+    <div class="toast-body">
+      <div class="toast-title">${escHtml(title)}</div>
+      ${msg ? `<div class="toast-msg">${escHtml(msg)}</div>` : ''}
+    </div>
+    <button class="toast-close" aria-label="Dismiss notification">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  `;
+
+  const dismiss = () => {
+    el.classList.add('leaving');
+    el.addEventListener('animationend', () => el.remove());
+  };
+
+  el.querySelector('.toast-close').addEventListener('click', dismiss);
+  toastContainer.appendChild(el);
+  setTimeout(dismiss, TOAST_DURATION);
 }
 
-async function loadDomains() {
-    try {
-        const domains = await api('GET', '/api/domains');
-        const el = document.getElementById('domainsTable');
-        if (!domains.length) {
-            el.innerHTML = '<div class="empty-state">No domains configured yet</div>';
-            return;
-        }
-        el.innerHTML = `<table>
-            <thead><tr><th>Domain</th><th>Upstream</th><th>Config File</th><th>Type</th><th>Actions</th></tr></thead>
-            <tbody>${domains.map(d => `<tr>
-                <td><a class="domain-link" href="https://${d.domain}" target="_blank">${d.domain}</a></td>
-                <td>${d.upstream}</td>
-                <td style="color:var(--text-dim)">${d.file}</td>
-                <td>${d.managed ? '<span class="badge badge-managed">managed</span>' : '<span class="badge badge-external">manual</span>'}</td>
-                <td><button class="btn btn-danger btn-sm" onclick="deleteDomain('${d.subdomain}')">Delete</button></td>
-            </tr>`).join('')}</tbody>
-        </table>`;
-    } catch (e) {
-        if (e.message !== 'Unauthorized') toast(e.message, 'error');
+// ─── API helpers ───────────────────────────────────────────────────────
+async function api(method, path, body = null) {
+  const opts = {
+    method,
+    headers: { 'X-API-Key': apiKey, 'Content-Type': 'application/json' },
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(path, opts);
+  if (res.status === 401) {
+    showAuth();
+    throw new Error('Unauthorized');
+  }
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(text || `HTTP ${res.status}`);
+  }
+  return res.json().catch(() => ({}));
+}
+
+// ─── Auth ──────────────────────────────────────────────────────────────
+function showAuth() {
+  apiKey = '';
+  sessionStorage.removeItem(API_KEY_STORAGE);
+  authOverlay.style.display = 'flex';
+  authError.textContent = '';
+  authError.classList.remove('visible');
+  apiKeyInput.value = '';
+  setTimeout(() => apiKeyInput.focus(), 50);
+}
+
+function hideAuth() {
+  authOverlay.style.display = 'none';
+}
+
+authForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const key = apiKeyInput.value.trim();
+  if (!key) return;
+
+  setLoading(authBtn, true);
+  authError.classList.remove('visible');
+
+  try {
+    // Try a lightweight endpoint to validate the key
+    const testKey = key;
+    const res = await fetch('/api/domains', {
+      headers: { 'X-API-Key': testKey },
+    });
+    if (res.status === 401) {
+      authError.textContent = 'Invalid API key. Please try again.';
+      authError.classList.add('visible');
+      apiKeyInput.focus();
+      return;
     }
-}
+    apiKey = testKey;
+    sessionStorage.setItem(API_KEY_STORAGE, apiKey);
+    hideAuth();
+    await loadAll();
+  } catch (err) {
+    authError.textContent = 'Connection error. Is the server reachable?';
+    authError.classList.add('visible');
+  } finally {
+    setLoading(authBtn, false);
+  }
+});
 
-async function loadContainers() {
-    try {
-        containers = await api('GET', '/api/containers');
-        const el = document.getElementById('containersTable');
-        el.innerHTML = `<table>
-            <thead><tr><th>Name</th><th>Image</th><th>Status</th><th>Networks</th></tr></thead>
-            <tbody>${containers.map(c => `<tr>
-                <td>${c.name}</td>
-                <td style="color:var(--text-dim);font-size:12px">${c.image}</td>
-                <td>${c.status === 'running' ? '<span style="color:var(--success)">running</span>' : c.status}</td>
-                <td>${c.networks.map(n => `<span class="badge badge-net">${n}</span>`).join(' ')}</td>
-            </tr>`).join('')}</tbody>
-        </table>`;
-        // Update container dropdown
-        const sel = document.getElementById('fContainer');
-        const current = sel.value;
-        sel.innerHTML = '<option value="">Select container...</option>' +
-            containers.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
-        if (current) sel.value = current;
-    } catch (e) {
-        if (e.message !== 'Unauthorized') toast(e.message, 'error');
+logoutBtn.addEventListener('click', () => {
+  showAuth();
+  toast('info', 'Signed out');
+});
+
+// ─── Data Loading ──────────────────────────────────────────────────────
+async function loadAll() {
+  setRefreshing(true);
+  try {
+    const [domsData, ctrsData] = await Promise.all([
+      api('GET', '/api/domains'),
+      api('GET', '/api/containers'),
+    ]);
+
+    domains = domsData.domains || [];
+    containers = ctrsData.containers || [];
+    networks = [...new Set(
+      containers.flatMap(c => c.networks || [])
+    )].sort();
+
+    renderDomains();
+    renderContainers();
+    updateStats();
+  } catch (err) {
+    if (err.message !== 'Unauthorized') {
+      toast('error', 'Failed to load data', err.message);
     }
+  } finally {
+    setRefreshing(false);
+  }
 }
 
-async function loadNetworks() {
-    try {
-        networks = await api('GET', '/api/networks');
-        const sel = document.getElementById('fNetwork');
-        const current = sel.value;
-        sel.innerHTML = '<option value="">No change (keep current)</option>' +
-            networks.map(n => `<option value="${n.name}">${n.name}</option>`).join('');
-        if (current) sel.value = current;
-    } catch (e) {
-        if (e.message !== 'Unauthorized') toast(e.message, 'error');
-    }
+// ─── Render Domains ────────────────────────────────────────────────────
+function renderDomains() {
+  domainsCount.textContent = domains.length;
+
+  if (!domains.length) {
+    domainsTbody.innerHTML = `
+      <tr class="empty-row">
+        <td colspan="5">
+          <div class="empty-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+          No proxy routes configured.
+          <button class="btn btn-secondary btn-sm" style="margin-top:12px;" onclick="openModal()">
+            Add your first route
+          </button>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  domainsTbody.innerHTML = domains.map(d => `
+    <tr>
+      <td class="td-domain">
+        <a href="https://${escHtml(d.subdomain)}.${escHtml(BASE_DOMAIN)}"
+           target="_blank"
+           rel="noopener noreferrer"
+           style="color:inherit;text-decoration:none;"
+           aria-label="Open ${escHtml(d.subdomain)}.${escHtml(BASE_DOMAIN)} in new tab">
+          <span style="color:var(--text-muted)">${escHtml(d.subdomain)}</span><span style="color:var(--blue-dim)">.${escHtml(BASE_DOMAIN)}</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:4px;opacity:0.4;vertical-align:middle;" aria-hidden="true">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+        </a>
+      </td>
+      <td class="td-container">${escHtml(d.container)}</td>
+      <td><span class="port-pill">:${escHtml(String(d.port))}</span></td>
+      <td class="td-network">${escHtml(d.network || '—')}</td>
+      <td style="text-align:right;white-space:nowrap;">
+        <button class="btn btn-danger-ghost"
+                onclick="promptDelete('${escHtml(d.subdomain)}')"
+                aria-label="Delete route for ${escHtml(d.subdomain)}.${escHtml(BASE_DOMAIN)}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6l-1 14H6L5 6"/>
+            <path d="M10 11v6"/><path d="M14 11v6"/>
+            <path d="M9 6V4h6v2"/>
+          </svg>
+          Delete
+        </button>
+      </td>
+    </tr>
+  `).join('');
 }
 
-// --- Actions ---
-async function createDomain() {
-    const subdomain = document.getElementById('fSubdomain').value.trim();
-    const container = document.getElementById('fContainer').value;
-    const port = parseInt(document.getElementById('fPort').value) || 80;
-    const network = document.getElementById('fNetwork').value;
+// ─── Render Containers ─────────────────────────────────────────────────
+function renderContainers() {
+  containersCount.textContent = containers.length;
 
-    if (!subdomain) return toast('Subdomain is required', 'error');
-    if (!container) return toast('Container is required', 'error');
+  if (!containers.length) {
+    containersTbody.innerHTML = `
+      <tr class="empty-row">
+        <td colspan="5">
+          <div class="empty-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+              <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+            </svg>
+          </div>
+          No running containers found.
+        </td>
+      </tr>
+    `;
+    return;
+  }
 
-    const btn = document.getElementById('btnCreate');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Creating...';
+  containersTbody.innerHTML = containers.map(c => {
+    const statusBadge = buildStatusBadge(c.status || 'unknown');
+    const nets = (c.networks || []).map(n => `<span class="badge badge-muted" style="margin:2px">${escHtml(n)}</span>`).join('');
+    const ports = (c.ports || []).map(p => `<span class="port-pill">${escHtml(p)}</span>`).join(' ');
 
-    try {
-        const result = await api('POST', '/api/domains', { subdomain, container, port, network });
-        toast(`Created ${result.domain}`);
-        closeModal();
-        await refreshAll();
-    } catch (e) {
-        toast(e.message, 'error');
-    } finally {
-        btn.disabled = false;
-        btn.textContent = 'Create';
-    }
+    return `
+      <tr>
+        <td class="td-container">${escHtml(c.name || '—')}</td>
+        <td style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+            title="${escHtml(c.image || '')}">
+          ${escHtml(c.image || '—')}
+        </td>
+        <td>${statusBadge}</td>
+        <td style="max-width:220px;">${nets || '<span style="color:var(--text-muted);font-size:0.75rem">—</span>'}</td>
+        <td>${ports || '<span style="color:var(--text-muted);font-size:0.75rem">—</span>'}</td>
+      </tr>
+    `;
+  }).join('');
 }
 
-async function deleteDomain(subdomain) {
-    if (!confirm(`Delete ${subdomain}.{{ base_domain }}?`)) return;
-    try {
-        await api('DELETE', `/api/domains/${subdomain}`);
-        toast(`Deleted ${subdomain}`);
-        await loadDomains();
-    } catch (e) {
-        toast(e.message, 'error');
-    }
+function buildStatusBadge(status) {
+  const s = status.toLowerCase();
+  if (s.startsWith('up') || s === 'running') {
+    return `<span class="badge badge-green"><span class="badge-dot"></span>${escHtml(status)}</span>`;
+  }
+  if (s.includes('exit') || s.includes('dead')) {
+    return `<span class="badge badge-muted">${escHtml(status)}</span>`;
+  }
+  return `<span class="badge badge-amber">${escHtml(status)}</span>`;
 }
 
-async function reloadCaddy() {
-    try {
-        const result = await api('POST', '/api/caddy/reload');
-        toast('Caddy reloaded: ' + result.reload);
-    } catch (e) {
-        toast(e.message, 'error');
-    }
+// ─── Stats ─────────────────────────────────────────────────────────────
+function updateStats() {
+  statDomains.textContent = domains.length;
+  statContainers.textContent = containers.length;
+  statNetworks.textContent = networks.length;
 }
 
-// --- Modal ---
+// ─── Modal ─────────────────────────────────────────────────────────────
 function openModal() {
-    document.getElementById('fSubdomain').value = '';
-    document.getElementById('fContainer').value = '';
-    document.getElementById('fPort').value = '80';
-    document.getElementById('fNetwork').value = '';
-    updatePreview();
-    document.getElementById('modalOverlay').classList.add('active');
+  addRouteForm.reset();
+  clearFieldErrors();
+  domainPreviewText.textContent = '—';
+
+  // Populate container dropdown
+  containerSelect.innerHTML = '<option value="">Select a container…</option>' +
+    containers.map(c => `<option value="${escAttr(c.name)}">${escHtml(c.name)}</option>`).join('');
+
+  // Populate network dropdown
+  networkSelect.innerHTML = '<option value="">Select a network…</option>' +
+    networks.map(n => `<option value="${escAttr(n)}">${escHtml(n)}</option>`).join('');
+
+  modalOverlay.classList.add('open');
+  modalOverlay.removeAttribute('aria-hidden');
+  setTimeout(() => subdomainInput.focus(), 50);
 }
 
 function closeModal() {
-    document.getElementById('modalOverlay').classList.remove('active');
+  modalOverlay.classList.remove('open');
+  modalOverlay.setAttribute('aria-hidden', 'true');
+  addDomainBtn.focus();
 }
 
-function updatePreview() {
-    const v = document.getElementById('fSubdomain').value.trim() || 'myapp';
-    document.getElementById('domainPreview').textContent = v;
-}
+addDomainBtn.addEventListener('click', openModal);
+modalClose.addEventListener('click', closeModal);
+modalCancel.addEventListener('click', closeModal);
 
-document.getElementById('modalOverlay').addEventListener('click', e => {
-    if (e.target === e.currentTarget) closeModal();
+modalOverlay.addEventListener('click', (e) => {
+  if (e.target === modalOverlay) closeModal();
 });
 
-// --- Init ---
-checkAuth();
+// Live domain preview
+subdomainInput.addEventListener('input', () => {
+  const val = subdomainInput.value.trim().toLowerCase();
+  domainPreviewText.textContent = val ? `${val}.${BASE_DOMAIN}` : '—';
+  subdomainInput.classList.remove('invalid');
+  $('#subdomain-error').classList.remove('visible');
+});
+
+// ─── Form submit ───────────────────────────────────────────────────────
+addRouteForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!validateRouteForm()) return;
+
+  setLoading(submitBtn, true);
+
+  const payload = {
+    subdomain: subdomainInput.value.trim().toLowerCase(),
+    container: containerSelect.value,
+    port: parseInt(portInput.value, 10),
+    network: networkSelect.value,
+  };
+
+  try {
+    await api('POST', '/api/domains', payload);
+    toast('success', 'Route added', `${payload.subdomain}.${BASE_DOMAIN} → ${payload.container}:${payload.port}`);
+    closeModal();
+    await loadAll();
+  } catch (err) {
+    toast('error', 'Failed to add route', err.message);
+  } finally {
+    setLoading(submitBtn, false);
+  }
+});
+
+function validateRouteForm() {
+  let valid = true;
+
+  const sub = subdomainInput.value.trim();
+  if (!sub) {
+    showFieldError('subdomain-error', 'Subdomain is required.');
+    subdomainInput.classList.add('invalid');
+    valid = false;
+  } else if (!/^[a-z0-9-]+$/.test(sub)) {
+    showFieldError('subdomain-error', 'Only lowercase letters, numbers, and hyphens allowed.');
+    subdomainInput.classList.add('invalid');
+    valid = false;
+  }
+
+  if (!containerSelect.value) {
+    showFieldError('container-error', 'Select a container.');
+    containerSelect.classList.add('invalid');
+    valid = false;
+  }
+
+  const port = parseInt(portInput.value, 10);
+  if (!portInput.value || isNaN(port) || port < 1 || port > 65535) {
+    showFieldError('port-error', 'Enter a valid port (1–65535).');
+    portInput.classList.add('invalid');
+    valid = false;
+  }
+
+  if (!networkSelect.value) {
+    showFieldError('network-error', 'Select a network.');
+    networkSelect.classList.add('invalid');
+    valid = false;
+  }
+
+  if (!valid) {
+    // Focus first invalid field
+    const firstInvalid = addRouteForm.querySelector('.invalid');
+    if (firstInvalid) firstInvalid.focus();
+  }
+
+  return valid;
+}
+
+function showFieldError(id, msg) {
+  const el = $(`#${id}`);
+  el.textContent = msg;
+  el.classList.add('visible');
+}
+
+function clearFieldErrors() {
+  $$('.field-error').forEach(el => el.classList.remove('visible'));
+  $$('.invalid').forEach(el => el.classList.remove('invalid'));
+}
+
+// ─── Delete Confirm ────────────────────────────────────────────────────
+function promptDelete(subdomain) {
+  deletePendingDomain = subdomain;
+  confirmDomain.textContent = `${subdomain}.${BASE_DOMAIN}`;
+  confirmOverlay.classList.add('open');
+  setTimeout(() => confirmDelete.focus(), 50);
+}
+
+confirmCancel.addEventListener('click', () => {
+  confirmOverlay.classList.remove('open');
+  deletePendingDomain = null;
+});
+
+confirmOverlay.addEventListener('click', (e) => {
+  if (e.target === confirmOverlay) {
+    confirmOverlay.classList.remove('open');
+    deletePendingDomain = null;
+  }
+});
+
+confirmDelete.addEventListener('click', async () => {
+  if (!deletePendingDomain) return;
+  const subdomain = deletePendingDomain;
+
+  setLoading(confirmDelete, true);
+
+  try {
+    await api('DELETE', `/api/domains/${encodeURIComponent(subdomain)}`);
+    toast('success', 'Route deleted', `${subdomain}.${BASE_DOMAIN}`);
+    confirmOverlay.classList.remove('open');
+    deletePendingDomain = null;
+    await loadAll();
+  } catch (err) {
+    toast('error', 'Failed to delete route', err.message);
+  } finally {
+    setLoading(confirmDelete, false);
+  }
+});
+
+// ─── Refresh ───────────────────────────────────────────────────────────
+refreshBtn.addEventListener('click', loadAll);
+
+function setRefreshing(on) {
+  refreshIcon.classList.toggle('spin', on);
+  refreshBtn.disabled = on;
+}
+
+// ─── Keyboard shortcuts ────────────────────────────────────────────────
+document.addEventListener('keydown', (e) => {
+  // Escape closes modals
+  if (e.key === 'Escape') {
+    if (confirmOverlay.classList.contains('open')) {
+      confirmOverlay.classList.remove('open');
+      deletePendingDomain = null;
+    } else if (modalOverlay.classList.contains('open')) {
+      closeModal();
+    }
+  }
+
+  // R to refresh (when no modal open and not typing)
+  if (e.key === 'r' && !e.ctrlKey && !e.metaKey &&
+      !modalOverlay.classList.contains('open') &&
+      !confirmOverlay.classList.contains('open') &&
+      document.activeElement.tagName !== 'INPUT' &&
+      document.activeElement.tagName !== 'TEXTAREA' &&
+      document.activeElement.tagName !== 'SELECT') {
+    loadAll();
+  }
+
+  // N to open new route modal
+  if (e.key === 'n' && !e.ctrlKey && !e.metaKey &&
+      !modalOverlay.classList.contains('open') &&
+      !confirmOverlay.classList.contains('open') &&
+      document.activeElement.tagName !== 'INPUT' &&
+      document.activeElement.tagName !== 'TEXTAREA' &&
+      document.activeElement.tagName !== 'SELECT') {
+    e.preventDefault();
+    openModal();
+  }
+});
+
+// ─── Utilities ─────────────────────────────────────────────────────────
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function escAttr(str) {
+  return String(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function setLoading(btn, on) {
+  btn.disabled = on;
+  btn.classList.toggle('btn-loading', on);
+}
+
+// ─── Boot ──────────────────────────────────────────────────────────────
+(function init() {
+  // Restore session
+  const saved = sessionStorage.getItem(API_KEY_STORAGE);
+  if (saved) {
+    apiKey = saved;
+    hideAuth();
+    loadAll();
+  } else {
+    authOverlay.style.display = 'flex';
+    setTimeout(() => apiKeyInput.focus(), 100);
+  }
+})();
 </script>
 </body>
 </html>
