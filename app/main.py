@@ -242,7 +242,7 @@ def _list_containers() -> list[dict]:
                     exposed.append(int(num))
         # Find associated domain
         domains = _parse_all_domains()
-        domain = next((d for d in domains if d["container"] == c.name), None)
+        container_domains = [d for d in domains if d["container"] == c.name]
         result.append({
             "name": c.name,
             "id": c.short_id,
@@ -250,7 +250,8 @@ def _list_containers() -> list[dict]:
             "status": c.status,
             "networks": nets,
             "ports": sorted(exposed),
-            "domain": domain,
+            "domain": container_domains[0] if len(container_domains) == 1 else None,
+            "domains": container_domains,
         })
     return sorted(result, key=lambda x: x["name"])
 

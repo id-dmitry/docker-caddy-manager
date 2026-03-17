@@ -2165,7 +2165,7 @@ function renderContainers(filter = '') {
         (c.name   || '').toLowerCase().includes(q) ||
         (c.image  || '').toLowerCase().includes(q) ||
         (c.status || '').toLowerCase().includes(q) ||
-        (c.domain ? (c.domain.domain || '') : '').toLowerCase().includes(q)
+        (c.domains || []).some(d => (d.domain || '').toLowerCase().includes(q))
       )
     : containers;
 
@@ -2205,12 +2205,15 @@ function renderContainers(filter = '') {
     const ports = (c.ports || []).map(p =>
       `<span class="port-pill">${escHtml(String(p))}</span>`
     ).join(' ');
-    const domainLabel = c.domain ? (c.domain.domain || c.domain.subdomain || '') : '';
-    const domainCell = domainLabel
-      ? `<span class="domain-badge">
+    const allDomains = c.domains || (c.domain ? [c.domain] : []);
+    const domainCell = allDomains.length
+      ? allDomains.map(d => {
+          const label = d.domain || d.subdomain || '';
+          return `<span class="domain-badge" style="margin:1px 0;display:inline-block;">
            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-           ${escHtml(domainLabel)}
-         </span>`
+           ${escHtml(label)}${d.source === 'caddyfile' ? ' <span style="opacity:0.5;font-size:0.6rem">(Caddyfile)</span>' : ''}
+         </span>`;
+        }).join('<br>')
       : `<span style="color:var(--text-muted);font-size:0.75rem">—</span>`;
 
     return `
