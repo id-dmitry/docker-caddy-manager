@@ -2048,8 +2048,8 @@ async function loadAll() {
       api('GET', '/api/containers'),
     ]);
 
-    domains    = domsData.domains    || [];
-    containers = ctrsData.containers || [];
+    domains    = Array.isArray(domsData) ? domsData : (domsData.domains || []);
+    containers = Array.isArray(ctrsData) ? ctrsData : (ctrsData.containers || []);
     networks   = [...new Set(
       containers.flatMap(c => c.networks || [])
     )].sort();
