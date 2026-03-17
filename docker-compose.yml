@@ -6,12 +6,14 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /root/n8n-install/caddy-addon:/data/addons:rw
+      - /root/n8n-install/Caddyfile:/data/Caddyfile:ro
     env_file:
       - .env
     environment:
       ADDON_DIR: /data/addons
       CADDY_CONTAINER: caddy
       BASE_DOMAIN: some-tools.org
+      CADDYFILE_PATH: /data/Caddyfile
     security_opt:
       - no-new-privileges:true
     cap_drop:

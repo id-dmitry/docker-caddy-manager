@@ -2111,26 +2111,17 @@ function renderDomains(filter = '') {
     return;
   }
 
-  domainsTbody.innerHTML = filtered.map(d => `
-    <tr>
-      <td class="td-domain">
-        <a href="https://${escHtml(d.subdomain)}.${escHtml(BASE_DOMAIN)}"
-           target="_blank"
-           rel="noopener noreferrer"
-           style="color:inherit;text-decoration:none;"
-           aria-label="Open ${escHtml(d.subdomain)}.${escHtml(BASE_DOMAIN)} in new tab">
-          <span style="color:var(--text-muted)">${escHtml(d.subdomain)}</span><span style="color:var(--blue-dim)">.${escHtml(BASE_DOMAIN)}</span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:4px;opacity:0.4;vertical-align:middle;" aria-hidden="true">
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-            <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-          </svg>
-        </a>
-      </td>
-      <td class="td-container">${escHtml(d.container)}</td>
-      <td><span class="port-pill">:${escHtml(String(d.port))}</span></td>
-      <td class="td-network">${escHtml(d.network || '—')}</td>
-      <td style="text-align:right;white-space:nowrap;">
-        <button class="btn btn-secondary btn-sm" style="margin-right:6px;"
+  domainsTbody.innerHTML = filtered.map(d => {
+    const isCaddyfile = d.source === 'caddyfile';
+    const domainDisplay = d.domain.startsWith('{$')
+      ? `<span style="color:var(--amber)">${escHtml(d.domain)}</span>`
+      : `<span style="color:var(--text-muted)">${escHtml(d.subdomain)}</span><span style="color:var(--blue-dim)">.${escHtml(BASE_DOMAIN)}</span>`;
+    const sourceLabel = isCaddyfile
+      ? `<span class="badge badge-muted" style="margin-left:8px;font-size:0.65rem;" title="Defined in main Caddyfile — read-only">Caddyfile</span>`
+      : '';
+    const actionsCell = isCaddyfile
+      ? `<span style="color:var(--text-muted);font-size:0.75rem;font-style:italic;" title="Defined in main Caddyfile — edit the Caddyfile directly to change">Locked</span>`
+      : `<button class="btn btn-secondary btn-sm" style="margin-right:6px;"
                 onclick="openEditModalByDomain('${escAttr(d.container)}')"
                 aria-label="Edit route for ${escHtml(d.subdomain)}.${escHtml(BASE_DOMAIN)}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -2149,10 +2140,21 @@ function renderDomains(filter = '') {
             <path d="M9 6V4h6v2"/>
           </svg>
           Delete
-        </button>
-      </td>
-    </tr>
-  `).join('');
+        </button>`;
+    return `
+      <tr${isCaddyfile ? ' style="opacity:0.7"' : ''}>
+        <td class="td-domain">
+          ${domainDisplay}${sourceLabel}
+        </td>
+        <td class="td-container">${escHtml(d.container)}</td>
+        <td><span class="port-pill">:${escHtml(String(d.port))}</span></td>
+        <td class="td-network">${escHtml(d.network || '—')}</td>
+        <td style="text-align:right;white-space:nowrap;">
+          ${actionsCell}
+        </td>
+      </tr>
+    `;
+  }).join('');
 }
 
 // ─── Render Containers ─────────────────────────────────────────────────

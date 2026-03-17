@@ -16,8 +16,8 @@ def create_mcp_app() -> Starlette:
     @mcp.tool()
     def caddy_list_domains() -> list[dict]:
         """List all configured Caddy reverse proxy domain mappings."""
-        from app.main import _parse_addon_domains
-        return _parse_addon_domains()
+        from app.main import _parse_all_domains
+        return _parse_all_domains()
 
     @mcp.tool()
     def caddy_create_domain(subdomain: str, container: str, port: int, network: str = "") -> dict:
@@ -30,11 +30,11 @@ def create_mcp_app() -> Starlette:
             network: Docker network to connect container to (optional)
         """
         from app.main import (
-            _parse_addon_domains, _write_domain_conf, _reload_caddy,
+            _parse_all_domains, _write_domain_conf, _reload_caddy,
             _connect_container_to_network, BASE_DOMAIN,
         )
 
-        existing = [d["subdomain"] for d in _parse_addon_domains()]
+        existing = [d["subdomain"] for d in _parse_all_domains()]
         if subdomain in existing:
             return {"error": f"Domain {subdomain}.{BASE_DOMAIN} already exists"}
 

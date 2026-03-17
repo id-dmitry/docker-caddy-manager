@@ -22,6 +22,7 @@ logger = logging.getLogger("caddy-manager")
 ADDON_DIR = os.environ.get("ADDON_DIR", "/data/addons")
 CADDY_CONTAINER = os.environ.get("CADDY_CONTAINER", "caddy")
 BASE_DOMAIN = os.environ.get("BASE_DOMAIN", "some-tools.org")
+CADDYFILE_PATH = os.environ.get("CADDYFILE_PATH", "/data/Caddyfile")
 API_KEY = os.environ["API_KEY"]  # no default — must be set
 
 # ---------------------------------------------------------------------------
@@ -103,8 +104,77 @@ def _parse_addon_domains() -> list[dict]:
                 "port": int(parts[1]) if len(parts) > 1 else 0,
                 "upstream": upstream,
                 "managed": managed,
+                "source": "addon",
             })
     return domains
+
+
+def _parse_caddyfile_domains() -> list[dict]:
+    """Parse domains from the main Caddyfile (read-only)."""
+    domains = []
+    if not os.path.exists(CADDYFILE_PATH):
+        return domains
+    content = open(CADDYFILE_PATH).read()
+    domain_re = re.compile(r"([\w.-]+\." + re.escape(BASE_DOMAIN) + r")\s*\{")
+    upstream_re = re.compile(r"reverse_proxy\s+([\w.\-]+:\d+)")
+    # Split by domain blocks
+    blocks = re.split(r"(?=[\w.${}.-]+\." + re.escape(BASE_DOMAIN) + r"\s*\{)", content)
+    for block in blocks:
+        m_domain = domain_re.search(block)
+        if not m_domain:
+            continue
+        # Skip env-var domains like {$N8N_HOSTNAME}
+        domain = m_domain.group(1)
+        if "{$" in block.split("{")[0]:
+            # This block uses an env var for domain — try to extract it
+            env_match = re.search(r"\{\$(\w+)\}\s*\{", block)
+            if env_match:
+                domain = "{$" + env_match.group(1) + "}"
+            else:
+                continue
+        m_upstream = upstream_re.search(block)
+        upstream = m_upstream.group(1) if m_upstream else "unknown"
+        parts = upstream.rsplit(":", 1) if m_upstream else ["unknown", "0"]
+        domains.append({
+            "file": "Caddyfile",
+            "domain": domain,
+            "subdomain": domain.replace(f".{BASE_DOMAIN}", ""),
+            "container": parts[0],
+            "port": int(parts[1]) if len(parts) > 1 else 0,
+            "upstream": upstream,
+            "managed": False,
+            "source": "caddyfile",
+        })
+    # Also parse env-var blocks like {$N8N_HOSTNAME} { ... reverse_proxy n8n:5678 }
+    env_blocks = re.findall(r"\{\$(\w+)\}\s*\{([^}]+)\}", content)
+    for env_name, block_body in env_blocks:
+        m_upstream = upstream_re.search(block_body)
+        if m_upstream:
+            upstream = m_upstream.group(1)
+            parts = upstream.rsplit(":", 1)
+            domains.append({
+                "file": "Caddyfile",
+                "domain": f"{{${env_name}}}",
+                "subdomain": f"{{${env_name}}}",
+                "container": parts[0],
+                "port": int(parts[1]) if len(parts) > 1 else 0,
+                "upstream": upstream,
+                "managed": False,
+                "source": "caddyfile",
+            })
+    return domains
+
+
+def _parse_all_domains() -> list[dict]:
+    """Parse domains from both addon configs and main Caddyfile."""
+    addon = _parse_addon_domains()
+    caddyfile = _parse_caddyfile_domains()
+    # Deduplicate: addon takes priority over caddyfile
+    addon_domains = {d["domain"] for d in addon}
+    for d in caddyfile:
+        if d["domain"] not in addon_domains:
+            addon.append(d)
+    return sorted(addon, key=lambda d: d["domain"])
 
 
 def _write_domain_conf(subdomain: str, container: str, port: int) -> str:
@@ -176,7 +246,7 @@ def _list_containers() -> list[dict]:
                 if num.isdigit() and int(num) not in exposed:
                     exposed.append(int(num))
         # Find associated domain
-        domains = _parse_addon_domains()
+        domains = _parse_all_domains()
         domain = next((d for d in domains if d["container"] == c.name), None)
         result.append({
             "name": c.name,
@@ -258,12 +328,12 @@ async def api_networks(_=Depends(verify_api_key)):
 
 @app.get("/api/domains")
 async def api_domains(_=Depends(verify_api_key)):
-    return _parse_addon_domains()
+    return _parse_all_domains()
 
 
 @app.post("/api/domains")
 async def api_create_domain(body: DomainCreate, _=Depends(verify_api_key)):
-    existing = [d["subdomain"] for d in _parse_addon_domains()]
+    existing = [d["subdomain"] for d in _parse_all_domains()]
     if body.subdomain in existing:
         raise HTTPException(409, f"Domain {body.subdomain}.{BASE_DOMAIN} already exists")
 
