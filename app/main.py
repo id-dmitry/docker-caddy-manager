@@ -112,56 +112,51 @@ def _parse_addon_domains() -> list[dict]:
 def _parse_caddyfile_domains() -> list[dict]:
     """Parse domains from the main Caddyfile (read-only)."""
     domains = []
+    seen = set()
     if not os.path.exists(CADDYFILE_PATH):
         return domains
     content = open(CADDYFILE_PATH).read()
-    domain_re = re.compile(r"([\w.-]+\." + re.escape(BASE_DOMAIN) + r")\s*\{")
     upstream_re = re.compile(r"reverse_proxy\s+([\w.\-]+:\d+)")
-    # Split by domain blocks
-    blocks = re.split(r"(?=[\w.${}.-]+\." + re.escape(BASE_DOMAIN) + r"\s*\{)", content)
-    for block in blocks:
-        m_domain = domain_re.search(block)
-        if not m_domain:
+    # Match lines like: domain.some-tools.org {  or  {$VAR_NAME} {
+    # Then capture everything until the matching closing brace
+    block_re = re.compile(
+        r"^[ \t]*((?:[\w.-]+\." + re.escape(BASE_DOMAIN) + r")|(?:\{\$\w+\}))\s*\{",
+        re.MULTILINE
+    )
+    for m in block_re.finditer(content):
+        domain_str = m.group(1)
+        # Find the block body (from { to matching })
+        start = m.end()
+        depth = 1
+        pos = start
+        while pos < len(content) and depth > 0:
+            if content[pos] == "{":
+                depth += 1
+            elif content[pos] == "}":
+                depth -= 1
+            pos += 1
+        block_body = content[start:pos - 1]
+        m_upstream = upstream_re.search(block_body)
+        if not m_upstream:
             continue
-        # Skip env-var domains like {$N8N_HOSTNAME}
-        domain = m_domain.group(1)
-        if "{$" in block.split("{")[0]:
-            # This block uses an env var for domain — try to extract it
-            env_match = re.search(r"\{\$(\w+)\}\s*\{", block)
-            if env_match:
-                domain = "{$" + env_match.group(1) + "}"
-            else:
-                continue
-        m_upstream = upstream_re.search(block)
-        upstream = m_upstream.group(1) if m_upstream else "unknown"
-        parts = upstream.rsplit(":", 1) if m_upstream else ["unknown", "0"]
+        upstream = m_upstream.group(1)
+        parts = upstream.rsplit(":", 1)
+        # Deduplicate
+        key = (domain_str, upstream)
+        if key in seen:
+            continue
+        seen.add(key)
+        is_env = domain_str.startswith("{$")
         domains.append({
             "file": "Caddyfile",
-            "domain": domain,
-            "subdomain": domain.replace(f".{BASE_DOMAIN}", ""),
+            "domain": domain_str,
+            "subdomain": domain_str if is_env else domain_str.replace(f".{BASE_DOMAIN}", ""),
             "container": parts[0],
             "port": int(parts[1]) if len(parts) > 1 else 0,
             "upstream": upstream,
             "managed": False,
             "source": "caddyfile",
         })
-    # Also parse env-var blocks like {$N8N_HOSTNAME} { ... reverse_proxy n8n:5678 }
-    env_blocks = re.findall(r"\{\$(\w+)\}\s*\{([^}]+)\}", content)
-    for env_name, block_body in env_blocks:
-        m_upstream = upstream_re.search(block_body)
-        if m_upstream:
-            upstream = m_upstream.group(1)
-            parts = upstream.rsplit(":", 1)
-            domains.append({
-                "file": "Caddyfile",
-                "domain": f"{{${env_name}}}",
-                "subdomain": f"{{${env_name}}}",
-                "container": parts[0],
-                "port": int(parts[1]) if len(parts) > 1 else 0,
-                "upstream": upstream,
-                "managed": False,
-                "source": "caddyfile",
-            })
     return domains
 
 
